@@ -11,6 +11,10 @@ rate_limit_cache = TTLCache(maxsize=10000, ttl=60)
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        # Exempt health check paths from rate limiting
+        if request.url.path in ["/", "/api/health"]:
+            return await call_next(request)
+            
         client_ip = request.client.host if request.client else "127.0.0.1"
         token = request.headers.get("Authorization")
         
