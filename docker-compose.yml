@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: cognify-db
+    environment:
+      POSTGRES_DB: cognify_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    container_name: cognify-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cognify_db
+      JWT_SECRET_KEY: your-production-secret-key-change-this
+      ML_MODEL_PATH: app/ml/model/stress_model.joblib
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/app/ml/model:/app/app/ml/model
+
+volumes:
+  postgres_data:
