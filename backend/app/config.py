@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     FITBIT_CLIENT_SECRET: str = "YOUR_CLIENT_SECRET"
     FITBIT_REDIRECT_URI: str = "http://127.0.0.1:8000/api/fitbit/callback"
     OPENAI_API_KEY: str = "your-openai-api-key"
+    AZURE_OPENAI_API_KEY: str = ""
+    AZURE_OPENAI_ENDPOINT: str = ""
 
     class Config:
         env_file = ".env"
