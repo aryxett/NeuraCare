@@ -11,9 +11,9 @@ class ApiService {
   // ── Network Hardening Helpers ──
   static Future<http.Response> _safeRequest(Future<http.Response> Function() requestFunc) async {
     try {
-      return await requestFunc().timeout(const Duration(seconds: 10));
+      return await requestFunc().timeout(const Duration(seconds: 60)); // Increased to handle Render free tier wake up
     } on TimeoutException {
-      throw Exception('Request timed out. Please check your internet connection.');
+      throw Exception('Request timed out while waiting for server to wake up.');
     } on SocketException {
       throw Exception('Unable to connect to the server. Offline mode currently unavailable.');
     } catch (e) {
