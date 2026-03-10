@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+import random
 
 from app.database import get_db
 from app.models.user import User
@@ -132,3 +132,71 @@ async def get_weekly_trends(
     )
     trends_cache[current_user.user_id] = result
     return {"success": True, "data": result}
+
+@router.post("/seed-demo-data")
+async def seed_demo_data(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Seed the database with 7 days of mock data for the current user."""
+    # Clear existing logs for these dates to avoid duplicates
+    today = date.today()
+    start_date = today - timedelta(days=7)
+    
+    db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id,
+        BehaviorLog.date >= start_date
+    ).delete()
+    
+    db.query(Prediction).filter(
+        Prediction.user_id == current_user.user_id,
+        Prediction.prediction_date >= start_date
+    ).delete()
+    
+    new_logs = []
+    new_preds = []
+    
+    for i in range(8):  # 7 days + today
+        d = start_date + timedelta(days=i)
+        
+        # Mock wellness data
+        sleep = random.uniform(5.5, 9.0)
+        screen = random.uniform(3.0, 8.0)
+        mood = random.randint(3, 9)
+        ex = random.choice([True, False])
+        
+        log = BehaviorLog(
+            user_id=current_user.user_id,
+            date=d,
+            sleep_hours=round(sleep, 1),
+            screen_time=round(screen, 1),
+            mood=mood,
+            exercise=ex
+        )
+        new_logs.append(log)
+        
+        # Base stress calculation for prediction
+        stress_score = max(0, min(100, 100 - (mood * 10) + (screen * 5) - (sleep * 2)))
+        risk = "Low"
+        if stress_score > 75: risk = "Critical"
+        elif stress_score > 50: risk = "High"
+        elif stress_score > 25: risk = "Moderate"
+        
+        pred = Prediction(
+            user_id=current_user.user_id,
+            stress_score=stress_score,
+            risk_level=risk,
+            prediction_date=d,
+            insights="Seed data for demo purposes."
+        )
+        new_preds.append(pred)
+    
+    db.add_all(new_logs)
+    db.add_all(new_preds)
+    db.commit()
+    
+    # Clear cache
+    if current_user.user_id in summary_cache: del summary_cache[current_user.user_id]
+    if current_user.user_id in trends_cache: del trends_cache[current_user.user_id]
+    
+    return {"success": True, "message": "7 days of mock data generated successfully!"}
