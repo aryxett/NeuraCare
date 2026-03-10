@@ -16,8 +16,10 @@ FITBIT_API_V1 = "https://api.fitbit.com/1/user/-"
 
 def generate_auth_url() -> str:
     """Generate the Fitbit OAuth2 authorization URL."""
-    scope = "sleep+activity+profile"
-    return f"{FITBIT_OAUTH_URL}?response_type=code&client_id={settings.FITBIT_CLIENT_ID}&redirect_uri={settings.FITBIT_REDIRECT_URI}&scope={scope}"
+    # Scopes must be space-separated for best compatibility
+    scopes = ["sleep", "activity", "profile"]
+    scope_str = "%20".join(scopes)
+    return f"{FITBIT_OAUTH_URL}?response_type=code&client_id={settings.FITBIT_CLIENT_ID}&redirect_uri={settings.FITBIT_REDIRECT_URI}&scope={scope_str}"
 
 async def exchange_code_for_token(code: str, db: Session, user_id: int):
     """Exchanges an authorization code for an access token and stores it."""
