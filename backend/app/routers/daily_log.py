@@ -7,10 +7,11 @@ from app.models.user import User
 from app.models.behavior_log import BehaviorLog
 from app.services.auth_service import get_current_user
 from app.schemas.daily_log import DailyLogSubmit, DailyLogResponse
+from app.schemas.common import StandardizedResponse
 
 router = APIRouter(prefix="/api", tags=["Phase 2 - Data Logging"])
 
-@router.post("/submit-daily-log", response_model=DailyLogResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/submit-daily-log", response_model=StandardizedResponse[DailyLogResponse], status_code=status.HTTP_201_CREATED)
 async def submit_daily_log(
     data: DailyLogSubmit,
     current_user: User = Depends(get_current_user),
@@ -58,11 +59,11 @@ async def submit_daily_log(
         log_id = new_log.log_id
         message = "Daily log created successfully"
 
-    return DailyLogResponse(
+    return {"success": True, "data": DailyLogResponse(
         status="success",
         message=message,
         log_id=log_id
-    )
+    )}
 
 @router.get("/user-history")
 async def get_user_history(
