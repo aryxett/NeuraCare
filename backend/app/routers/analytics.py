@@ -25,8 +25,8 @@ async def get_dashboard_summary(
 ):
     """Returns Phase 4 Dashboard analytics."""
     if current_user.user_id in summary_cache:
-        return {"success": True, "data": summary_cache[current_user.user_id]}
-        
+        return summary_cache[current_user.user_id]
+
     thirty_days_ago = date.today() - timedelta(days=30)
     
     logs = db.query(BehaviorLog).filter(
@@ -85,8 +85,9 @@ async def get_dashboard_summary(
         burnout_risk=burnout_risk,
         triggers=triggers
     )
-    summary_cache[current_user.user_id] = result
-    return {"success": True, "data": result}
+    response_data = {"success": True, "data": result}
+    summary_cache[current_user.user_id] = response_data
+    return response_data
 
 @router.get("/weekly-trends", response_model=StandardizedResponse[Phase4WeeklyTrends])
 async def get_weekly_trends(
@@ -95,7 +96,7 @@ async def get_weekly_trends(
 ):
     """Returns weekly trends."""
     if current_user.user_id in trends_cache:
-        return {"success": True, "data": trends_cache[current_user.user_id]}
+        return trends_cache[current_user.user_id]
         
     today = date.today()
     seven_days_ago = today - timedelta(days=6)  # Today + 6 previous days = 7 days
@@ -130,8 +131,9 @@ async def get_weekly_trends(
         screen_time=screen_time,
         mood=mood
     )
-    trends_cache[current_user.user_id] = result
-    return {"success": True, "data": result}
+    response_data = {"success": True, "data": result}
+    trends_cache[current_user.user_id] = response_data
+    return response_data
 
 @router.post("/seed-demo-data")
 async def seed_demo_data(
