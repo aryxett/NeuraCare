@@ -97,16 +97,33 @@ async def get_weekly_trends(
     if current_user.user_id in trends_cache:
         return {"success": True, "data": trends_cache[current_user.user_id]}
         
-    seven_days_ago = date.today() - timedelta(days=7)
+    today = date.today()
+    seven_days_ago = today - timedelta(days=6)  # Today + 6 previous days = 7 days
     
     logs = db.query(BehaviorLog).filter(
         BehaviorLog.user_id == current_user.user_id,
         BehaviorLog.date >= seven_days_ago
-    ).order_by(BehaviorLog.date.asc()).all()
+    ).all()
 
-    sleep = [round(l.sleep_hours, 1) for l in logs]
-    screen_time = [round(l.screen_time, 1) for l in logs]
-    mood = [l.mood for l in logs]
+    # Create a map of date -> log
+    log_map = {log.date: log for log in logs}
+    
+    sleep = []
+    screen_time = []
+    mood = []
+    
+    # Fill exactly 7 days
+    for i in range(7):
+        current_date = seven_days_ago + timedelta(days=i)
+        log = log_map.get(current_date)
+        if log:
+            sleep.append(round(log.sleep_hours, 1))
+            screen_time.append(round(log.screen_time, 1))
+            mood.append(float(log.mood))
+        else:
+            sleep.append(0.0)
+            screen_time.append(0.0)
+            mood.append(0.0)
 
     result = Phase4WeeklyTrends(
         sleep=sleep,
