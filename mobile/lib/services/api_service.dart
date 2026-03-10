@@ -21,15 +21,18 @@ class ApiService {
     }
   }
 
-  static Exception _handleError(http.Response response, String defaultMessage) {
+  static Exception _handleError(http.Response response, String defaultMessage, {String? url}) {
+    String message = defaultMessage;
+    if (url != null) message += " (URL: $url)";
+    
     try {
       final data = jsonDecode(response.body);
       if (data is Map) {
-        if (data.containsKey('error')) return Exception(data['error']);
-        if (data.containsKey('detail')) return Exception(data['detail']);
+        if (data.containsKey('error')) return Exception(data['error'] + (url != null ? " [$url]" : ""));
+        if (data.containsKey('detail')) return Exception(data['detail'] + (url != null ? " [$url]" : ""));
       }
     } catch (_) {}
-    return Exception(defaultMessage);
+    return Exception(message);
   }
 
   // ── Token Management ──
@@ -131,27 +134,29 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> getAnalyticsDashboardSummary() async {
+    const url = '$baseUrl/analytics/dashboard-summary';
     final response = await _safeRequest(() async => http.get(
-      Uri.parse('$baseUrl/analytics/dashboard-summary'),
+      Uri.parse(url),
       headers: await _authHeaders(),
     ));
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
       if (json['success'] == true) return json['data'];
     }
-    throw _handleError(response, 'Failed to get dashboard summary');
+    throw _handleError(response, 'Failed to get dashboard summary', url: url);
   }
 
   static Future<Map<String, dynamic>> getAnalyticsWeeklyTrends() async {
+    const url = '$baseUrl/analytics/weekly-trends';
     final response = await _safeRequest(() async => http.get(
-      Uri.parse('$baseUrl/analytics/weekly-trends'),
+      Uri.parse(url),
       headers: await _authHeaders(),
     ));
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body);
       if (json['success'] == true) return json['data'];
     }
-    throw _handleError(response, 'Failed to get weekly trends');
+    throw _handleError(response, 'Failed to get weekly trends', url: url);
   }
 
   // ══════════════════════════════════════════════════
@@ -305,6 +310,19 @@ class ApiService {
       if (json['success'] == true) return json['data'];
     }
     throw _handleError(response, 'Failed to get insights');
+  }
+
+  static Future<Map<String, dynamic>> seedDemoData() async {
+    const url = '$baseUrl/analytics/seed-demo-data';
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse(url),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json;
+    }
+    throw _handleError(response, 'Failed to seed demo data', url: url);
   }
 
   // ══════════════════════════════════════════════════
