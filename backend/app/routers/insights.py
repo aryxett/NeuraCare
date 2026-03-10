@@ -7,11 +7,11 @@ from app.schemas.prediction import InsightResponse
 from app.services.auth_service import get_current_user
 from app.services.insight_engine import generate_insights
 from app.ml.predict import predict_stress
+from app.schemas.common import StandardizedResponse
 
 router = APIRouter(prefix="/api/insights", tags=["Insights"])
 
-
-@router.get("/", response_model=InsightResponse)
+@router.get("/", response_model=StandardizedResponse[InsightResponse])
 async def get_insights(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -23,12 +23,12 @@ async def get_insights(
     ).order_by(BehaviorLog.date.desc()).limit(7).all()
 
     if not recent_logs:
-        return InsightResponse(
+        return {"success": True, "data": InsightResponse(
             insights=["No behavior data found. Start logging your daily habits to get personalized insights."],
             overall_risk="Unknown",
             summary="We need more data to provide meaningful insights. Please log your daily behavior.",
             recommendations=["Log your sleep, mood, screen time, and exercise daily for personalized wellness advice."]
-        )
+        )}
 
     # Use the most recent log for prediction
     latest = recent_logs[0]
@@ -49,4 +49,4 @@ async def get_insights(
         recent_logs=recent_logs
     )
 
-    return InsightResponse(**insight_data)
+    return {"success": True, "data": InsightResponse(**insight_data)}
