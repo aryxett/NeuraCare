@@ -70,9 +70,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                    Color(0xFFF0FDF4),
-                    Color(0xFFDBEAFE)
-                  ]); // Mint to subtle blue vibrant background
+                    Color(0xFFF8FAFC),
+                    Color(0xFFF1F5F9)
+                  ]); // Faded clean background
       }
 
       return AnimatedContainer(
@@ -204,7 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: GlassContainer(
-                baseColor: isDark ? Colors.white : const Color(0xFFDBEAFE),
+                baseColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 borderRadius: 24,
                 borderOpacity: 0.15,

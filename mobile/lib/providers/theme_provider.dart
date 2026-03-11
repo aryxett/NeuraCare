@@ -53,7 +53,7 @@ class ThemeProvider extends ChangeNotifier {
         centerTitle: true,
       ),
       cardTheme: CardThemeData(
-        color: const Color(0xFFE0F2FE).withOpacity(0.6), // Sky Blue frosted glass base
+        color: Colors.white.withOpacity(0.9), // Clean frosted glass base
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: Colors.black.withOpacity(0.05)),

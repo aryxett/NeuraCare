@@ -31,11 +31,11 @@ class GlassContainer extends StatelessWidget {
 
     final fallbackColor = isDark
         ? Colors.white.withOpacity(0.04)
-        : const Color(0xFFE0F2FE).withOpacity(0.85); // Frosted subtle sky blue for light mode
+        : Colors.white.withOpacity(0.9); // Clean white pane for light mode
 
     final fallbackBorderColor = isDark
         ? Colors.white.withOpacity(borderOpacity)
-        : const Color(0xFF3B82F6).withOpacity(0.15); // Subtle blue border
+        : Colors.black.withOpacity(0.05); // Subtle shadow border
 
     // If baseColor is explicitly passed and is not the default white, use it with opacity
     Color finalContainerColor;
