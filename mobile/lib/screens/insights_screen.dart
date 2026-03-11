@@ -222,7 +222,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             _buildAnimatedItem(
               5,
               SizedBox(
-                height: 195, // Increased height to prevent bottom shadow clipping
+                height: 220, // Increased height significantly for text breathing room
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
@@ -304,18 +304,22 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        CircularProgressIndicator(
-                          value: 1.0,
-                          backgroundColor: Colors.transparent,
-                          color: riskColor.withOpacity(0.1),
-                          strokeWidth: 8, // Thinner stroke
+                        SizedBox.expand(
+                          child: CircularProgressIndicator(
+                            value: 1.0,
+                            backgroundColor: Colors.transparent,
+                            color: riskColor.withOpacity(0.15), // slightly more visible track
+                            strokeWidth: 8,
+                          ),
                         ),
-                        CircularProgressIndicator(
-                          value: value / 100,
-                          backgroundColor: Colors.transparent,
-                          color: riskColor,
-                          strokeWidth: 8, // Thinner stroke
-                          strokeCap: StrokeCap.round,
+                        SizedBox.expand(
+                          child: CircularProgressIndicator(
+                            value: value / 100,
+                            backgroundColor: Colors.transparent,
+                            color: riskColor,
+                            strokeWidth: 8,
+                            strokeCap: StrokeCap.round,
+                          ),
                         ),
                         Column(
                           mainAxisSize: MainAxisSize.min,
