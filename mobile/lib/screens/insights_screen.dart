@@ -222,7 +222,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             _buildAnimatedItem(
               5,
               SizedBox(
-                height: 180,
+                height: 195, // Increased height to prevent bottom shadow clipping
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   physics: const BouncingScrollPhysics(),
@@ -300,7 +300,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
                   return SizedBox(
-                    width: 110, height: 110,
+                    width: 120, height: 120, // Increased size
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -308,21 +308,21 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                           value: 1.0,
                           backgroundColor: Colors.transparent,
                           color: riskColor.withOpacity(0.1),
-                          strokeWidth: 10,
+                          strokeWidth: 8, // Thinner stroke
                         ),
                         CircularProgressIndicator(
                           value: value / 100,
                           backgroundColor: Colors.transparent,
                           color: riskColor,
-                          strokeWidth: 10,
+                          strokeWidth: 8, // Thinner stroke
                           strokeCap: StrokeCap.round,
                         ),
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(value.toInt().toString(), style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: riskColor, height: 1.0)),
-                            const SizedBox(height: 2),
-                            Text('Stress', style: TextStyle(fontSize: 12, color: secondary, fontWeight: FontWeight.w500)),
+                            Text(value.toInt().toString(), style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: riskColor, height: 1.0)),
+                            const SizedBox(height: 4),
+                            Text('Stress', style: TextStyle(fontSize: 13, color: secondary, fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ],
