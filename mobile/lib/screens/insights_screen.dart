@@ -130,7 +130,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
 
     final aiSummary = _stripEmoji(_insightsData!['summary'] ?? '');
     
-    final stressScore = _dashboardData?['stress_score'] ?? 0;
+    final stressScore = (_dashboardData?['stress_score'] as num?)?.toInt() ?? 0;
     
     // Calculate simple behavioral insights based on trends vs average
     final sleepList = List<num>.from(_trendsData?['sleep'] ?? []).map((e) => e.toDouble()).toList();
@@ -248,7 +248,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               const SizedBox(height: 16),
               _buildAnimatedItem(
                 7,
-                _buildListCard(insights, Icons.circle, const Color(0xFF3B82F6), 6, cardColor, primaryTextColor, secondaryTextColor),
+                _buildListCard(insights, Icons.circle, const Color(0xFF3B82F6), 6.0, cardColor, primaryTextColor, secondaryTextColor),
               ),
               const SizedBox(height: 32),
             ],
@@ -262,7 +262,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               const SizedBox(height: 16),
               _buildAnimatedItem(
                 9,
-                _buildListCard(recs, Icons.adjust_rounded, const Color(0xFF10B981), 16, cardColor, primaryTextColor, secondaryTextColor),
+                _buildListCard(recs, Icons.adjust_rounded, const Color(0xFF10B981), 16.0, cardColor, primaryTextColor, secondaryTextColor),
               ),
             ],
           ],
@@ -295,7 +295,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             children: [
               // Animated Circular Gauge
               TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0, end: score.toDouble()),
+                tween: Tween<double>(begin: 0.0, end: score.toDouble()),
                 duration: const Duration(milliseconds: 1400),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
@@ -430,7 +430,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
     return FadeTransition(
       opacity: _fadeAnimation,
       child: SlideTransition(
-        position: Tween<Offset>(begin: Offset(0, 0.1 + (index * 0.05)), end: Offset.zero)
+        position: Tween<Offset>(begin: Offset(0.0, 0.1 + (index * 0.05)), end: Offset.zero)
             .animate(CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic)),
         child: child,
       ),
