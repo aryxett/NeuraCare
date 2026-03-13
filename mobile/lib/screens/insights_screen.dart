@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 import '../services/api_service.dart';
 import '../widgets/glass_container.dart';
 
@@ -39,17 +38,23 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
   Future<void> _load() async {
     setState(() { _loading = true; _error = null; });
     try {
-      final futures = await Future.wait([
-        ApiService.getInsights(),
-        ApiService.getDashboardSummary(),
-        ApiService.getWeeklyTrends(),
-      ]);
+      // Always fetch insights; dashboard + trends are optional enrichment
+      final insightsData = await ApiService.getInsights();
+      
+      Map<String, dynamic>? dashData;
+      Map<String, dynamic>? trendsData;
+      try {
+        dashData = await ApiService.getAnalyticsDashboardSummary();
+      } catch (_) { /* Dashboard data is optional enrichment */ }
+      try {
+        trendsData = await ApiService.getAnalyticsWeeklyTrends();
+      } catch (_) { /* Trends data is optional enrichment */ }
 
       if (mounted) {
         setState(() { 
-          _insightsData = futures[0];
-          _dashboardData = futures[1];
-          _trendsData = futures[2];
+          _insightsData = insightsData;
+          _dashboardData = dashData;
+          _trendsData = trendsData;
           _loading = false; 
         });
         _animController.forward(from: 0.0);
@@ -170,10 +175,16 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
     String moodImpact = "Not enough data to analyze mood stability.";
     if (moodList.length >= 3) {
       final recentMoods = moodList.sublist(moodList.length - 3);
-      final variance = recentMoods.reduce((math.max)) - recentMoods.reduce((math.min));
+      double maxMood = recentMoods[0];
+      double minMood = recentMoods[0];
+      for (final m in recentMoods) {
+        if (m > maxMood) maxMood = m;
+        if (m < minMood) minMood = m;
+      }
+      final variance = maxMood - minMood;
       if (variance <= 1.5) {
         moodImpact = "Your mood has remained highly stable over the last 3 days.";
-      } else if (variance <= 3) {
+      } else if (variance <= 3.0) {
         moodImpact = "Your mood has been relatively stable, with minor fluctuations.";
       } else {
         moodImpact = "Your mood has shown significant variability over the last 3 days.";
