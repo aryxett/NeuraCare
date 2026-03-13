@@ -38,9 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleSafeSpace(bool active) {
-    if (_safeSpaceMode != active) {
-      setState(() => _safeSpaceMode = active);
-    }
+    // Disabled: always keep the normal Cognify AI theme
   }
 
   @override

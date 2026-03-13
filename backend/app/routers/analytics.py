@@ -25,16 +25,14 @@ async def get_dashboard_summary(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Returns Phase 4 Dashboard analytics."""
+    """Returns Phase 4 Dashboard analytics based on the most recent log entry."""
 
-    thirty_days_ago = date.today() - timedelta(days=30)
-    
-    logs = db.query(BehaviorLog).filter(
-        BehaviorLog.user_id == current_user.user_id,
-        BehaviorLog.date >= thirty_days_ago
-    ).all()
+    # Get the most recent log entry (the latest data the user submitted)
+    latest_log = db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id
+    ).order_by(BehaviorLog.date.desc()).first()
 
-    if not logs:
+    if not latest_log:
         result = Phase4DashboardSummary(
             avg_sleep=0.0,
             avg_mood=0.0,
@@ -46,43 +44,62 @@ async def get_dashboard_summary(
         )
         return {"success": True, "data": result}
 
-    avg_sleep = round(sum(l.sleep_hours for l in logs) / len(logs), 1)
-    avg_mood = round(sum(l.mood for l in logs) / len(logs), 1)
-    avg_screen = round(sum(l.screen_time for l in logs) / len(logs), 1)
+    # Use latest log's data directly (not 30-day averages)
+    current_sleep = round(latest_log.sleep_hours, 1)
+    current_mood = round(float(latest_log.mood), 1)
+    current_screen = round(latest_log.screen_time, 1)
 
+    # Get the latest prediction for this user (should match the latest log submission)
     latest_pred = db.query(Prediction).filter(
         Prediction.user_id == current_user.user_id
     ).order_by(Prediction.prediction_date.desc()).first()
 
-    stress = int(round(latest_pred.stress_score)) if latest_pred else 0
+    if latest_pred:
+        stress = int(round(latest_pred.stress_score))
+    else:
+        # Fallback: calculate from the latest log's data
+        from app.ml.predict import predict_stress
+        stress = int(round(predict_stress(
+            sleep_hours=latest_log.sleep_hours,
+            screen_time=latest_log.screen_time,
+            mood=latest_log.mood,
+            exercise=latest_log.exercise,
+        )))
 
     # Calculate Wellness Score (0-100)
-    sleep_score = min(avg_sleep / 8.0 * 100, 100)
-    mood_score = avg_mood * 10
+    sleep_score = min(current_sleep / 8.0 * 100, 100)
+    mood_score = current_mood * 10
     stress_inverse = max(100 - stress, 0)
     wellness_score = int((sleep_score * 0.4) + (mood_score * 0.4) + (stress_inverse * 0.2))
 
     # Calculate Burnout Risk (0-100)
     burnout_risk = int(stress * 0.5 + (100 - sleep_score) * 0.3 + (100 - mood_score) * 0.2)
 
+    # Recent logs for insight generation (last 7 days)
+    seven_days_ago = date.today() - timedelta(days=6)
+    recent_logs = db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id,
+        BehaviorLog.date >= seven_days_ago
+    ).order_by(BehaviorLog.date.desc()).all()
+
     # Use Insight Engine for deeper analysis
     insight_data = generate_insights(
-        sleep_hours=avg_sleep,
-        screen_time=avg_screen,
-        mood=int(avg_mood),
-        exercise=any(l.exercise for l in logs),
+        sleep_hours=current_sleep,
+        screen_time=current_screen,
+        mood=int(current_mood),
+        exercise=latest_log.exercise,
         stress_score=float(stress),
-        recent_logs=logs
+        recent_logs=recent_logs
     )
 
     result = Phase4DashboardSummary(
-        avg_sleep=avg_sleep,
-        avg_mood=avg_mood,
-        avg_screen_time=avg_screen,
+        avg_sleep=current_sleep,
+        avg_mood=current_mood,
+        avg_screen_time=current_screen,
         stress_score=stress,
         wellness_score=wellness_score,
         burnout_risk=burnout_risk,
-        triggers=insight_data["insights"] # Use AI-generated insights as triggers
+        triggers=insight_data["insights"]
     )
     response_data = {"success": True, "data": result}
     return response_data
