@@ -312,9 +312,9 @@ class ApiService {
     throw _handleError(response, 'Failed to get insights');
   }
 
-  static Future<Map<String, dynamic>> seedDemoData() async {
-    const url = '$baseUrl/analytics/seed-demo-data';
-    final response = await _safeRequest(() async => http.post(
+  static Future<Map<String, dynamic>> clearHistory() async {
+    const url = '$baseUrl/analytics/clear-history';
+    final response = await _safeRequest(() async => http.delete(
       Uri.parse(url),
       headers: await _authHeaders(),
     ));
@@ -322,7 +322,7 @@ class ApiService {
       final json = jsonDecode(response.body);
       if (json['success'] == true) return json;
     }
-    throw _handleError(response, 'Failed to seed demo data', url: url);
+    throw _handleError(response, 'Failed to clear history', url: url);
   }
 
   // ══════════════════════════════════════════════════

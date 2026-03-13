@@ -6,6 +6,9 @@ Generates human-readable wellness insights from behavioral data and predictions.
 from typing import Optional
 
 
+from app.services.azure_insight_service import generate_azure_insights
+
+
 def get_risk_level(stress_score: float) -> str:
     """Categorize stress score into risk levels."""
     if stress_score < 25:
@@ -28,9 +31,29 @@ def generate_insights(
 ) -> dict:
     """
     Generate AI-driven wellness insights based on current data and historical patterns.
-
-    Returns a dict with: insights, overall_risk, summary, recommendations
+    Uses Azure OpenAI if available, with rule-based fallback.
     """
+    risk_level = get_risk_level(stress_score)
+    
+    # ── 1. Try Azure AI Insights ──
+    azure_data = generate_azure_insights(
+        sleep_hours=sleep_hours,
+        screen_time=screen_time,
+        mood=mood,
+        exercise=exercise,
+        stress_score=stress_score,
+        recent_logs=recent_logs
+    )
+    
+    if azure_data and "summary" in azure_data and "ai_insights" in azure_data:
+        return {
+            "insights": azure_data["ai_insights"],
+            "overall_risk": risk_level,
+            "summary": azure_data["summary"],
+            "recommendations": azure_data.get("recommendations", [])
+        }
+
+    # ── 2. Rule-based Fallback (Original Logic) ──
     insights = []
     recommendations = []
     risk_level = get_risk_level(stress_score)

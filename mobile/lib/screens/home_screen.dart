@@ -148,37 +148,55 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.rocket_launch_rounded,
-                    size: 20, color: Color(0xFF3B82F6)),
+                icon: const Icon(Icons.delete_sweep_rounded,
+                    size: 20, color: Color(0xFFEF4444)),
                 onPressed: () async {
-                  try {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Seeding demo data...'),
-                          duration: Duration(seconds: 1)),
-                    );
-                    await ApiService.seedDemoData();
-                    _dashboardKey.currentState?.refresh();
-                    _insightsKey.currentState?.refresh();
-                    _historyKey.currentState?.refresh();
-                    if (mounted) {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      title: const Text('Clear History?'),
+                      content: const Text('This will delete all your logs and AI predictions. This action cannot be undone.'),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true), 
+                          child: const Text('Clear', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true) {
+                    try {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('🎉 7 days of mock data added!'),
-                            backgroundColor: Color(0xFF10B981)),
+                            content: Text('Clearing history...'),
+                            duration: Duration(seconds: 1)),
                       );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(e.toString()),
-                            backgroundColor: Colors.redAccent),
-                      );
+                      await ApiService.clearHistory();
+                      _dashboardKey.currentState?.refresh();
+                      _insightsKey.currentState?.refresh();
+                      _historyKey.currentState?.refresh();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('✅ History cleared successfully!'),
+                              backgroundColor: Color(0xFF10B981)),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content: Text(e.toString()),
+                              backgroundColor: Colors.redAccent),
+                        );
+                      }
                     }
                   }
                 },
-                tooltip: 'Generate Demo Data',
+                tooltip: 'Clear History',
               ),
               IconButton(
                 icon: const Icon(Icons.logout_rounded, size: 20),

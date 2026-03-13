@@ -21,6 +21,7 @@ from app.schemas.dashboard import (
 from app.schemas.common import StandardizedResponse
 from app.services.auth_service import get_current_user
 from app.services.insight_engine import generate_insights, get_risk_level
+from app.routers.analytics import summary_cache as analytics_summary_cache, trends_cache as analytics_trends_cache
 from app.services.behavior_analysis import (
     calculate_wellness_score,
     predict_burnout,
@@ -108,6 +109,10 @@ async def submit_daily_data(
     )
     db.add(prediction)
     db.commit()
+
+    # Clear analytics caches so the user sees updated insights immediately
+    if current_user.user_id in analytics_summary_cache: del analytics_summary_cache[current_user.user_id]
+    if current_user.user_id in analytics_trends_cache: del analytics_trends_cache[current_user.user_id]
 
     return {"success": True, "data": DailyDataResponse(
         stress_score=round(stress_score, 2),

@@ -151,21 +151,21 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
   Future<void> _submit() async {
     setState(() { _loading = true; _result = null; });
     try {
-      final me = await ApiService.getMe();
-      final userId = me['user_id'] as int;
-      await ApiService.submitPhase2DailyLog(userId: userId, sleepHours: _sleepHours, screenTime: _screenTime, mood: _mood, exercise: _exercise);
-      final preds = await ApiService.getPredictions(limit: 1);
+      // Use the live endpoint that runs ML prediction and returns result directly
+      final liveResult = await ApiService.submitDailyData(
+        sleepHours: _sleepHours,
+        screenTime: _screenTime,
+        mood: _mood,
+        exercise: _exercise,
+      );
       
-      if (preds.isNotEmpty) {
-        final latestPred = preds.first;
-        setState(() {
-          _result = {
-            'stress_score': latestPred['stress_score'],
-            'risk_level': latestPred['risk_level'],
-            'message': latestPred['insights'] ?? 'Data recorded successfully',
-          };
-        });
-      }
+      setState(() {
+        _result = {
+          'stress_score': liveResult['stress_score'],
+          'risk_level': liveResult['risk_level'],
+          'message': liveResult['message'] ?? 'Analysis complete',
+        };
+      });
       widget.onSubmitted?.call();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -431,54 +431,56 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             // Result Card
             if (_result != null) ...[
               const SizedBox(height: 32),
-              GlassContainer(
-                padding: const EdgeInsets.all(24),
-                baseColor: _riskColor(_result!['risk_level']),
-                borderOpacity: 0.3,
-                child: Column(
-                  children: [
-                    const Text('AI Prediction Model', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                    const SizedBox(height: 24),
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          width: 120, height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: _riskColor(_result!['risk_level']).withOpacity(0.4), blurRadius: 20, spreadRadius: 5)],
+              Center(
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(24),
+                  baseColor: _riskColor(_result!['risk_level']),
+                  borderOpacity: 0.3,
+                  child: Column(
+                    children: [
+                      const Text('AI Prediction Model', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const SizedBox(height: 24),
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            width: 120, height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [BoxShadow(color: _riskColor(_result!['risk_level']).withOpacity(0.4), blurRadius: 20, spreadRadius: 5)],
+                            ),
+                            child: CircularProgressIndicator(
+                              value: (_result!['stress_score'] as num).toDouble() / 100,
+                              backgroundColor: Colors.white.withOpacity(0.1),
+                              color: _riskColor(_result!['risk_level']),
+                              strokeWidth: 8,
+                            ),
                           ),
-                          child: CircularProgressIndicator(
-                            value: (_result!['stress_score'] as num).toDouble() / 100,
-                            backgroundColor: Colors.white.withOpacity(0.1),
-                            color: _riskColor(_result!['risk_level']),
-                            strokeWidth: 8,
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('${(_result!['stress_score'] as num).toStringAsFixed(0)}', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: _riskColor(_result!['risk_level']))),
+                              Text('Score', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7))),
+                            ],
                           ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('${(_result!['stress_score'] as num).toStringAsFixed(0)}', style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: _riskColor(_result!['risk_level']))),
-                            Text('Score', style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7))),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _riskColor(_result!['risk_level']).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _riskColor(_result!['risk_level']).withOpacity(0.5)),
+                        ],
                       ),
-                      child: Text('Risk: ${_result!['risk_level']}', style: TextStyle(color: _riskColor(_result!['risk_level']), fontWeight: FontWeight.w600)),
-                    ),
-                    if (_result!['message'] != null) ...[
-                      const SizedBox(height: 16),
-                      Text(_result!['message'], style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _riskColor(_result!['risk_level']).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: _riskColor(_result!['risk_level']).withOpacity(0.5)),
+                        ),
+                        child: Text('Risk: ${_result!['risk_level']}', style: TextStyle(color: _riskColor(_result!['risk_level']), fontWeight: FontWeight.w600)),
+                      ),
+                      if (_result!['message'] != null) ...[
+                        const SizedBox(height: 16),
+                        Text(_result!['message'], style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13, height: 1.5), textAlign: TextAlign.center),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
             ],

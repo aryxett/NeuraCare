@@ -7,14 +7,15 @@ from app.database import get_db
 from app.models.user import User
 from app.models.behavior_log import BehaviorLog
 from app.models.prediction import Prediction
-from app.services.auth_service import get_current_user
+from app.services.insight_engine import generate_insights, get_risk_level
 from app.schemas.analytics import Phase4DashboardSummary, Phase4WeeklyTrends
 from app.schemas.common import StandardizedResponse
+from app.services.auth_service import get_current_user
 from cachetools import TTLCache
 
-# In-memory caches for performance optimization (5-minute TTL)
-summary_cache = TTLCache(maxsize=1000, ttl=300)
-trends_cache = TTLCache(maxsize=1000, ttl=300)
+# In-memory caches for performance optimization (10-second TTL for near-real-time updates)
+summary_cache = TTLCache(maxsize=1000, ttl=10)
+trends_cache = TTLCache(maxsize=1000, ttl=10)
 
 # We use /api/analytics as a prefix to avoid colliding with the older /api/dashboard-summary from previous phases
 router = APIRouter(prefix="/api/analytics", tags=["Phase 4 - Analytics"])
@@ -25,8 +26,6 @@ async def get_dashboard_summary(
     db: Session = Depends(get_db)
 ):
     """Returns Phase 4 Dashboard analytics."""
-    if current_user.user_id in summary_cache:
-        return summary_cache[current_user.user_id]
 
     thirty_days_ago = date.today() - timedelta(days=30)
     
@@ -66,16 +65,15 @@ async def get_dashboard_summary(
     # Calculate Burnout Risk (0-100)
     burnout_risk = int(stress * 0.5 + (100 - sleep_score) * 0.3 + (100 - mood_score) * 0.2)
 
-    # Detect Triggers
-    triggers = []
-    if avg_sleep < 6.0:
-        triggers.append("Low average sleep (< 6 hours)")
-    if avg_screen > 6.0:
-        triggers.append("High screen time (> 6 hours)")
-    if avg_mood < 4.0:
-        triggers.append("Consistently low mood")
-    if stress > 70:
-        triggers.append("High AI stress levels")
+    # Use Insight Engine for deeper analysis
+    insight_data = generate_insights(
+        sleep_hours=avg_sleep,
+        screen_time=avg_screen,
+        mood=int(avg_mood),
+        exercise=any(l.exercise for l in logs),
+        stress_score=float(stress),
+        recent_logs=logs
+    )
 
     result = Phase4DashboardSummary(
         avg_sleep=avg_sleep,
@@ -84,10 +82,9 @@ async def get_dashboard_summary(
         stress_score=stress,
         wellness_score=wellness_score,
         burnout_risk=burnout_risk,
-        triggers=triggers
+        triggers=insight_data["insights"] # Use AI-generated insights as triggers
     )
     response_data = {"success": True, "data": result}
-    summary_cache[current_user.user_id] = response_data
     return response_data
 
 @router.get("/weekly-trends", response_model=StandardizedResponse[Phase4WeeklyTrends])
@@ -96,8 +93,6 @@ async def get_weekly_trends(
     db: Session = Depends(get_db)
 ):
     """Returns weekly trends."""
-    if current_user.user_id in trends_cache:
-        return trends_cache[current_user.user_id]
         
     today = date.today()
     seven_days_ago = today - timedelta(days=6)  # Today + 6 previous days = 7 days
@@ -133,7 +128,6 @@ async def get_weekly_trends(
         mood=mood
     )
     response_data = {"success": True, "data": result}
-    trends_cache[current_user.user_id] = response_data
     return response_data
 
 @router.post("/seed-demo-data")
@@ -190,7 +184,7 @@ async def seed_demo_data(
             stress_score=stress_score,
             risk_level=risk,
             prediction_date=d,
-            insights="Seed data for demo purposes."
+            insights=f"Stress score {stress_score:.0f} based on sleep {round(sleep,1)}h, screen {round(screen,1)}h, mood {mood}/10."
         )
         new_preds.append(pred)
     
@@ -203,3 +197,19 @@ async def seed_demo_data(
     if current_user.user_id in trends_cache: del trends_cache[current_user.user_id]
     
     return {"success": True, "message": "7 days of mock data generated successfully!"}
+
+@router.delete("/clear-history")
+async def clear_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Wipe all logs and predictions for the current user."""
+    db.query(BehaviorLog).filter(BehaviorLog.user_id == current_user.user_id).delete()
+    db.query(Prediction).filter(Prediction.user_id == current_user.user_id).delete()
+    db.commit()
+    
+    # Clear cache
+    if current_user.user_id in summary_cache: del summary_cache[current_user.user_id]
+    if current_user.user_id in trends_cache: del trends_cache[current_user.user_id]
+    
+    return {"success": True, "message": "History cleared successfully!"}
