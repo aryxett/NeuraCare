@@ -43,12 +43,26 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """Authenticate and get a JWT token."""
     user = db.query(User).filter(User.email == form_data.username).first()
-    if not user or not verify_password(form_data.password, user.password_hash):
+    
+    if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        
+    is_valid, needs_rehash = verify_password(form_data.password, user.password_hash)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Automatically upgrade hash to fast-login version if it's on the old slow version
+    if needs_rehash:
+        user.password_hash = hash_password(form_data.password)
+        db.commit()
 
     access_token = create_access_token(data={"sub": str(user.user_id)})
     return {"success": True, "data": {"access_token": access_token, "token_type": "bearer"}}

@@ -95,6 +95,7 @@ async def submit_daily_data(
         exercise=data.exercise,
         stress_score=stress_score,
         recent_logs=recent_logs,
+        use_llm=False, # Bypass heavy Azure OpenAI call to prevent 8-second UI load delays
     )
 
     message = insight_data["summary"]

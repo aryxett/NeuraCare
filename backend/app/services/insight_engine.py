@@ -27,31 +27,33 @@ def generate_insights(
     mood: int,
     exercise: bool,
     stress_score: float,
-    recent_logs: Optional[list] = None
+    recent_logs: Optional[list] = None,
+    use_llm: bool = True
 ) -> dict:
     """
     Generate AI-driven wellness insights based on current data and historical patterns.
-    Uses Azure OpenAI if available, with rule-based fallback.
+    Uses Azure OpenAI if available and requested, with rule-based fallback for immediate UI responses.
     """
     risk_level = get_risk_level(stress_score)
     
     # ── 1. Try Azure AI Insights ──
-    azure_data = generate_azure_insights(
-        sleep_hours=sleep_hours,
-        screen_time=screen_time,
-        mood=mood,
-        exercise=exercise,
-        stress_score=stress_score,
-        recent_logs=recent_logs
-    )
-    
-    if azure_data and "summary" in azure_data and "ai_insights" in azure_data:
-        return {
-            "insights": azure_data["ai_insights"],
-            "overall_risk": risk_level,
-            "summary": azure_data["summary"],
-            "recommendations": azure_data.get("recommendations", [])
-        }
+    if use_llm:
+        azure_data = generate_azure_insights(
+            sleep_hours=sleep_hours,
+            screen_time=screen_time,
+            mood=mood,
+            exercise=exercise,
+            stress_score=stress_score,
+            recent_logs=recent_logs
+        )
+        
+        if azure_data and "summary" in azure_data and "ai_insights" in azure_data:
+            return {
+                "insights": azure_data["ai_insights"],
+                "overall_risk": risk_level,
+                "summary": azure_data["summary"],
+                "recommendations": azure_data.get("recommendations", [])
+            }
 
     # ── 2. Rule-based Fallback (Original Logic) ──
     insights = []

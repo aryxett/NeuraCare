@@ -21,14 +21,17 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 import bcrypt
 
 def hash_password(password: str) -> str:
-    """Hash a plain-text password using direct bcrypt to avoid passlib py3.14 string issues."""
-    salt = bcrypt.gensalt()
+    """Hash a plain-text password using direct bcrypt.
+    Using rounds=4 to prevent 8-second login delays on CPU-starved free tiers."""
+    salt = bcrypt.gensalt(rounds=4)
     return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash using direct bcrypt."""
-    return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+def verify_password(plain_password: str, hashed_password: str) -> tuple[bool, bool]:
+    """Verify a password against its hash and tell if it needs rehashing (if rounds > 4)."""
+    is_valid = bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+    needs_rehash = is_valid and not hashed_password.startswith("$2b$04$")
+    return is_valid, needs_rehash
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
