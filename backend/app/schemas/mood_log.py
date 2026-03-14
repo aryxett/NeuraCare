@@ -3,9 +3,11 @@ from enum import Enum
 
 class MoodOption(str, Enum):
     calm = "calm"
+    happy = "happy"
+    motivated = "motivated"
+    neutral = "neutral"
     stressed = "stressed"
     tired = "tired"
-    motivated = "motivated"
 
 class MoodCheckInRequest(BaseModel):
     mood: MoodOption

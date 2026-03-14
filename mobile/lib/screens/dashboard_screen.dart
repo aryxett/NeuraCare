@@ -16,6 +16,9 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
   Map<String, dynamic>? _summary;
   Map<String, dynamic>? _trends;
   bool _loading = true;
+  bool _hasCheckedInMood = true; // Default to true to prevent flashing
+  bool _submittingMood = false;
+  String? _selectedMood; // Track which mood chip is currently selected/animating
   String? _error;
 
   late AnimationController _animController;
@@ -42,6 +45,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     try {
       final summary = await ApiService.getAnalyticsDashboardSummary();
       final trends = await ApiService.getAnalyticsWeeklyTrends();
+      final moodStatus = await ApiService.getMoodCheckInStatus();
       
       final stress = (summary['stress_score'] as num).toDouble();
       widget.onStressUpdate(stress > 75);
@@ -50,6 +54,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         setState(() {
           _summary = summary;
           _trends = trends;
+          _hasCheckedInMood = moodStatus['has_checked_in_today'] == true;
           _loading = false;
         });
         _animController.forward(from: 0.0);
@@ -60,6 +65,154 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         _animController.forward(from: 0.0);
       }
     }
+  }
+
+  Future<void> _onMoodSelected(String value) async {
+    // Step 1 & 2: Highlight the selected mood chip
+    setState(() => _selectedMood = value);
+
+    // Wait for highlight animation to be visible
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    // Step 3 & 4: Show loading state and call API
+    if (!mounted) return;
+    setState(() => _submittingMood = true);
+
+    try {
+      await ApiService.submitMoodCheckIn(value);
+      // Step 5: Success → hide the card
+      if (mounted) {
+        setState(() {
+          _hasCheckedInMood = true;
+          _submittingMood = false;
+          _selectedMood = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✨ Thank you for checking in!'),
+            backgroundColor: Color(0xFF10B981),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _submittingMood = false;
+          _selectedMood = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  Widget _buildMoodCheckInCard(bool isDark, Color primaryTextColor, Color textColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: GlassContainer(
+        padding: const EdgeInsets.all(20),
+        borderOpacity: 0.15,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.wb_sunny_rounded, color: Color(0xFF3B82F6), size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'How are you feeling today?',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_submittingMood)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2),
+                      SizedBox(height: 8),
+                      Text('Submitting...', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13)),
+                    ],
+                  ),
+                ),
+              )
+            else
+              GridView.count(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 2.5,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  _buildMoodChip('calm', '😌 Calm', const Color(0xFF10B981)),
+                  _buildMoodChip('happy', '😊 Happy', const Color(0xFF3B82F6)),
+                  _buildMoodChip('motivated', '🔥 Motivated', const Color(0xFF8B5CF6)),
+                  _buildMoodChip('neutral', '😐 Neutral', const Color(0xFF6B7280)),
+                  _buildMoodChip('stressed', '😰 Stressed', const Color(0xFFEF4444)),
+                  _buildMoodChip('tired', '😴 Tired', const Color(0xFFF59E0B)),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoodChip(String value, String label, Color color) {
+    final isSelected = _selectedMood == value;
+
+    return AnimatedScale(
+      scale: isSelected ? 1.1 : 1.0,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutBack,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.3) : color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? color : color.withOpacity(0.3),
+            width: isSelected ? 2.0 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)]
+              : [],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: _submittingMood ? null : () => _onMoodSelected(value),
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? color : color.withOpacity(0.9),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -152,6 +305,8 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (!_hasCheckedInMood) _buildMoodCheckInCard(isDark, primaryTextColor, textColor),
+              
               // Welcome Header
               Text('Overview', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: isDark ? Colors.white.withOpacity(0.9) : primaryTextColor)),
               const SizedBox(height: 4),
@@ -230,7 +385,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                 children: [
                   _buildKpiCard('Sleep', '${avgSleepVal.toStringAsFixed(1)}h', Icons.bedtime_rounded, const Color(0xFF3B82F6), primaryTextColor, textColor),
                   _buildKpiCard('Screen', '${avgScreenVal.toStringAsFixed(1)}h', Icons.smartphone_rounded, const Color(0xFFEC4899), primaryTextColor, textColor),
-                  _buildKpiCard('Mood', '${avgMoodVal.toStringAsFixed(1)}/10', Icons.sentiment_satisfied_rounded, const Color(0xFF10B981), primaryTextColor, textColor),
+                  _buildKpiCard('Avg Mood', '${avgMoodVal.toStringAsFixed(1)}/10', Icons.sentiment_satisfied_rounded, const Color(0xFF10B981), primaryTextColor, textColor),
                 ],
               ),
 
