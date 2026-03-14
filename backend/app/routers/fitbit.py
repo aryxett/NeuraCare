@@ -20,21 +20,41 @@ async def fitbit_login(current_user: User = Depends(get_current_user)):
     return {"success": True, "data": {"auth_url": f"{auth_url}&state={state}"}}
 
 
+from fastapi.responses import HTMLResponse
+
 @router.get("/callback")
 async def fitbit_callback(code: str = Query(None), state: str = Query(None), db: Session = Depends(get_db)):
     """
     Fitbit redirects here after user grants permission.
+    We return a simple HTML page telling them to copy the URL
+    so the mobile app can exchange the code.
     """
     if not code or not state:
         raise HTTPException(status_code=400, detail="Missing authorization code or state.")
         
-    try:
-        user_id = int(state)
-        await fitbit_service.exchange_code_for_token(code, db, user_id)
-        return {"success": True, "data": {"status": "success", "message": "Fitbit connected successfully! You can return to the app."}}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to authenticate Fitbit: {str(e)}")
-
+    html_content = """
+    <html>
+        <head>
+            <title>Fitbit Connected</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px 20px; background-color: #0f172a; color: white; }
+                .container { max-width: 500px; margin: 0 auto; background-color: #1e293b; padding: 30px; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+                h2 { color: #10B981; margin-top: 0; }
+                p { line-height: 1.6; color: #cbd5e1; }
+                .copy-btn { margin-top: 20px; padding: 12px 24px; background-color: #3b82f6; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>✅ Authorization Successful!</h2>
+                <p>Cognify AI has been authorized.</p>
+                <p><strong>Please copy the full URL from your browser's address bar</strong> and paste it into the Cognify AI app to finish connecting.</p>
+            </div>
+        </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @router.post("/exchange-code")
 async def exchange_fitbit_code(
