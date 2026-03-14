@@ -110,62 +110,63 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
 
   Widget _buildMoodCheckInCard(bool isDark, Color primaryTextColor, Color textColor) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: const EdgeInsets.only(bottom: 12),
       child: GlassContainer(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         borderOpacity: 0.15,
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(5),
                   decoration: BoxDecoration(
                     color: const Color(0xFF3B82F6).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.wb_sunny_rounded, color: Color(0xFF3B82F6), size: 20),
+                  child: const Icon(Icons.wb_sunny_rounded, color: Color(0xFF3B82F6), size: 16),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'How are you feeling today?',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: primaryTextColor),
-                  ),
+                const SizedBox(width: 8),
+                Text(
+                  'How are you feeling today?',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryTextColor),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             if (_submittingMood)
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+                padding: EdgeInsets.symmetric(vertical: 4),
                 child: Center(
-                  child: Column(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2),
-                      SizedBox(height: 8),
-                      Text('Submitting...', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13)),
+                      SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: Color(0xFF3B82F6), strokeWidth: 2)),
+                      SizedBox(width: 8),
+                      Text('Submitting...', style: TextStyle(color: Color(0xFF3B82F6), fontSize: 13, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
               )
             else
-              GridView.count(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 2.5,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  _buildMoodChip('calm', '😌 Calm', const Color(0xFF10B981)),
-                  _buildMoodChip('happy', '😊 Happy', const Color(0xFF3B82F6)),
-                  _buildMoodChip('motivated', '🔥 Motivated', const Color(0xFF8B5CF6)),
-                  _buildMoodChip('neutral', '😐 Neutral', const Color(0xFF6B7280)),
-                  _buildMoodChip('stressed', '😰 Stressed', const Color(0xFFEF4444)),
-                  _buildMoodChip('tired', '😴 Tired', const Color(0xFFF59E0B)),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final chipWidth = (constraints.maxWidth - 12) / 3; // 3 columns, 6px spacing x2
+                  return Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _buildMoodChip('calm', 'Calm', const Color(0xFF10B981), chipWidth),
+                      _buildMoodChip('happy', 'Happy', const Color(0xFF3B82F6), chipWidth),
+                      _buildMoodChip('motivated', 'Motivated', const Color(0xFF8B5CF6), chipWidth),
+                      _buildMoodChip('neutral', 'Neutral', const Color(0xFF6B7280), chipWidth),
+                      _buildMoodChip('stressed', 'Stressed', const Color(0xFFEF4444), chipWidth),
+                      _buildMoodChip('tired', 'Tired', const Color(0xFFF59E0B), chipWidth),
+                    ],
+                  );
+                },
               ),
           ],
         ),
@@ -173,40 +174,44 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     );
   }
 
-  Widget _buildMoodChip(String value, String label, Color color) {
+  Widget _buildMoodChip(String value, String label, Color color, double chipWidth) {
     final isSelected = _selectedMood == value;
 
-    return AnimatedScale(
-      scale: isSelected ? 1.1 : 1.0,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOutBack,
-      child: AnimatedContainer(
+    return SizedBox(
+      width: chipWidth,
+      height: 34,
+      child: AnimatedScale(
+        scale: isSelected ? 1.08 : 1.0,
         duration: const Duration(milliseconds: 250),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.3) : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected ? color : color.withOpacity(0.3),
-            width: isSelected ? 2.0 : 1.0,
+        curve: Curves.easeOutBack,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.3) : color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : color.withOpacity(0.3),
+              width: isSelected ? 2.0 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 10, spreadRadius: 1)]
+                : [],
           ),
-          boxShadow: isSelected
-              ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 12, spreadRadius: 2)]
-              : [],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: _submittingMood ? null : () => _onMoodSelected(value),
-            child: Center(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? color : color.withOpacity(0.9),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: _submittingMood ? null : () => _onMoodSelected(value),
+              child: Center(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? color : color.withOpacity(0.9),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -438,151 +443,63 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
 
                const SizedBox(height: 32),
 
-               // Stress Triggers
-               if (triggers.isNotEmpty) ...[
-                 Text('Detected Patterns', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
-                 const SizedBox(height: 16),
-                 ...triggers.map((t) => Padding(
-                   padding: const EdgeInsets.only(bottom: 12),
-                   child: GlassContainer(
-                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                     baseColor: const Color(0xFFEF4444),
-                     borderOpacity: 0.2,
-                     child: Row(
-                       children: [
-                         Container(
-                           padding: const EdgeInsets.all(8),
-                           decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.1), shape: BoxShape.circle),
-                           child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 16),
-                         ),
-                         const SizedBox(width: 16),
-                         Expanded(child: Text(t, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87))),
-                       ],
-                     ),
-                   ),
-                 )),
-                 const SizedBox(height: 24),
-               ],
+                // Stress Triggers
+                if (triggers.isNotEmpty) ...[
+                  Text('Detected Patterns', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                  const SizedBox(height: 16),
+                  ...triggers.map((t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: GlassContainer(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      baseColor: const Color(0xFFEF4444),
+                      borderOpacity: 0.2,
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 16),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(child: Text(t, style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87))),
+                        ],
+                      ),
+                    ),
+                  )),
+                  const SizedBox(height: 24),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
-               Text('Trend Analysis', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
-               const SizedBox(height: 16),
-
-               if (weeklySleep.isNotEmpty && weeklySleep.any((val) => val > 0)) ...[
-                 _buildChartCard('Sleep Duration (7 Days)', _buildBarChart(weeklySleep, const Color(0xFF3B82F6), isDark), primaryTextColor),
-                 const SizedBox(height: 16),
-                 _buildChartCard('Mood Fluctuation (7 Days)', _buildLineChart(weeklyMood, const Color(0xFF8B5CF6), isDark), primaryTextColor),
-               ] else ...[
-                 Center(
-                   child: Padding(
-                     padding: const EdgeInsets.all(24.0),
-                     child: Text('Insufficient data for trend analysis', style: TextStyle(color: textColor)),
-                   ),
-                 ),
-               ],
-             ],
-           ),
-         ),
-       ),
-     );
-   }
-
-   Widget _buildKpiCard(String title, String value, IconData icon, Color accentColor, Color primaryText, Color secondaryText) {
-     return GlassContainer(
-       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Reduced horizontal padding
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Container(
-             padding: const EdgeInsets.all(6), // Reduced padding
-             decoration: BoxDecoration(
-               color: accentColor.withOpacity(0.1),
-               borderRadius: BorderRadius.circular(10),
-             ),
-             child: Icon(icon, color: accentColor, size: 18), // Smaller icon
-           ),
-           const Spacer(), // Use Spacer to push content
-           Text(title, style: TextStyle(color: secondaryText, fontSize: 11, fontWeight: FontWeight.w500)),
-           const SizedBox(height: 2),
-           FittedBox(
-             fit: BoxFit.scaleDown,
-             alignment: Alignment.centerLeft,
-             child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryText, letterSpacing: -0.5)), // Smaller font
-           ),
-         ],
-       ),
-     );
-   }
-
-   Widget _buildChartCard(String title, Widget chart, Color primaryText) {
-     return GlassContainer(
-       padding: const EdgeInsets.all(20),
-       child: Column(
-         crossAxisAlignment: CrossAxisAlignment.start,
-         children: [
-           Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: primaryText)),
-           const SizedBox(height: 24),
-           SizedBox(height: 160, child: chart),
-         ],
-       ),
-     );
-   }
-
-   Widget _buildBarChart(List<double> data, Color color, bool isDark) {
-     return BarChart(
-       BarChartData(
-         gridData: FlGridData(show: false),
-         borderData: FlBorderData(show: false),
-         titlesData: FlTitlesData(show: false),
-         barGroups: data.asMap().entries.map((e) {
-           return BarChartGroupData(x: e.key, barRods: [
-             BarChartRodData(
-               toY: e.value, width: 12,
-               borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-               gradient: LinearGradient(
-                 begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                 colors: [color.withOpacity(0.3), color],
-               ),
-               backDrawRodData: BackgroundBarChartRodData(
-                 show: true, toY: 10, // Max mock boundary
-                 color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
-               ),
-             ),
-           ]);
-         }).toList(),
-       ),
-     );
-   }
-
-   Widget _buildLineChart(List<double> data, Color color, bool isDark) {
-     return LineChart(
-       LineChartData(
-         gridData: FlGridData(show: false),
-         borderData: FlBorderData(show: false),
-         titlesData: FlTitlesData(show: false),
-         minY: 0, maxY: 10,
-         lineBarsData: [
-           LineChartBarData(
-             spots: data.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-             isCurved: true,
-             color: color,
-             barWidth: 3,
-             isStrokeCapRound: true,
-             dotData: FlDotData(
-               show: true,
-               getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
-                 radius: 4, color: color, strokeColor: isDark ? const Color(0xFF0B1220) : Colors.white, strokeWidth: 2,
-               ),
-             ),
-             belowBarData: BarAreaData(
-               show: true,
-               gradient: LinearGradient(
-                 begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                 colors: [color.withOpacity(0.3), Colors.transparent],
-               ),
-             ),
-           ),
-         ],
-       ),
-     );
-   }
+    Widget _buildKpiCard(String title, String value, IconData icon, Color accentColor, Color primaryText, Color secondaryText) {
+      return GlassContainer(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14), // Reduced horizontal padding
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6), // Reduced padding
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: accentColor, size: 18), // Smaller icon
+            ),
+            const Spacer(), // Use Spacer to push content
+            Text(title, style: TextStyle(color: secondaryText, fontSize: 11, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryText, letterSpacing: -0.5)), // Smaller font
+            ),
+          ],
+        ),
+      );
+    }
+  }
  }
