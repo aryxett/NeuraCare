@@ -10,8 +10,19 @@ if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 
 # SQLite needs check_same_thread=False for FastAPI
-connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-engine = create_engine(database_url, echo=settings.DEBUG, connect_args=connect_args)
+if database_url.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+    engine = create_engine(database_url, echo=settings.DEBUG, connect_args=connect_args)
+else:
+    # Use connection pooling for Postgres to prevent slow logins/timeouts
+    engine = create_engine(
+        database_url, 
+        echo=settings.DEBUG,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,      # Tests connection before using it
+        pool_recycle=1800        # Recycles connections every 30 minutes
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
