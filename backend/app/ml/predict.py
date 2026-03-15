@@ -63,30 +63,34 @@ def predict_stress(sleep_hours: float, screen_time: float, mood: int, exercise: 
         features = np.array([[sleep_hours, screen_time, mood, exercise_val]])
         prediction = _model.predict(features)[0]
     else:
-        # Rule-based fallback — designed to produce realistic scores
-        # Baseline: 30 (neutral starting point for an average day)
-        #
-        # Sleep component: 7-8h is optimal (score 0), <5h is bad (+25), >9h is slightly negative (+5)
+        # ── Rule-based fallback (no ML model on server) ──
+        # Each component is individually capped to prevent saturation.
+        # Baseline 25, max possible ≈ 92 (truly extreme inputs only).
+        
+        # Sleep (range: -8 to +22)
+        # 8h+ → stress reduction, <7h → stress increase, capped at 22
         if sleep_hours >= 7:
-            sleep_component = max(-10, (7 - sleep_hours) * 3)   # good sleep reduces stress
+            sleep_c = max(-8, (7 - sleep_hours) * 2.5)
         else:
-            sleep_component = (7 - sleep_hours) * 7              # poor sleep increases stress
+            sleep_c = min(22, (7 - sleep_hours) * 5)
         
-        # Screen time component: <3h is great (-5), 3-6h is normal (0-5), >6h is bad (+5 to +15)
-        if screen_time <= 3:
-            screen_component = -5
-        elif screen_time <= 6:
-            screen_component = (screen_time - 3) * 2             # gentle ramp
+        # Screen time (range: -5 to +18)
+        # <2h is great, 2-5h normal, >5h bad, capped at 18
+        if screen_time <= 2:
+            screen_c = -5
+        elif screen_time <= 5:
+            screen_c = (screen_time - 2) * 1.5
         else:
-            screen_component = 6 + (screen_time - 6) * 3         # steeper after 6h
+            screen_c = min(18, 4.5 + (screen_time - 5) * 2.5)
         
-        # Mood component: 7-10 is great (-10 to -5), 5-6 is neutral (0), 1-4 is bad (+5 to +20)
-        mood_component = (5.5 - mood) * 4
+        # Mood (range: -10 to +16)
+        # High mood (8+) reduces stress, low mood (<4) increases it
+        mood_c = min(16, max(-10, (5 - mood) * 3.5))
         
-        # Exercise component: exercise reduces stress
-        exercise_component = -8 if exercise else 5
+        # Exercise (range: -7 to +4)
+        exercise_c = -7 if exercise else 4
         
-        prediction = 30 + sleep_component + screen_component + mood_component + exercise_component
+        prediction = 25 + sleep_c + screen_c + mood_c + exercise_c
 
-    # Clamp to valid range without numpy
+    # Clamp to valid range
     return float(max(0, min(100, prediction)))
