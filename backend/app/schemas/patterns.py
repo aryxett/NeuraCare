@@ -10,6 +10,7 @@ class PatternInsight(BaseModel):
     description: str
     confidence: float
     data_points: int
+    data_strength: str
     category: str
 
 

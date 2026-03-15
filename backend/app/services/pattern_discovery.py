@@ -11,11 +11,53 @@ from sqlalchemy.orm import Session
 from app.models.behavior_log import BehaviorLog
 from app.models.prediction import Prediction
 
-# Minimum number of log entries required before generating any patterns
+# Minimum total log entries required before generating ANY patterns
 MIN_DATA_POINTS = 5
+
+# Minimum relevant samples PER PATTERN before it can be shown
+MIN_PATTERN_SAMPLES = 5
 
 # Minimum confidence threshold — patterns below this are suppressed
 MIN_CONFIDENCE = 0.4
+
+
+def _data_strength(sample_count: int) -> str:
+    """Classify sample size into a human-readable data strength label."""
+    if sample_count < 5:
+        return "Insufficient"
+    elif sample_count < 10:
+        return "Low"
+    elif sample_count < 20:
+        return "Moderate"
+    elif sample_count < 30:
+        return "Strong"
+    else:
+        return "Very Strong"
+
+
+def _build_pattern(pattern_id: str, title: str, description: str,
+                   raw_confidence: float, data_points: int, category: str) -> Optional[Dict]:
+    """Build a pattern dict with data strength and confidence penalty for small samples."""
+    # Suppress patterns with too few relevant data points
+    if data_points < MIN_PATTERN_SAMPLES:
+        return None
+
+    # Apply sample-size penalty: scale confidence down for small samples
+    # Full confidence only at 15+ samples, linear ramp from 5 to 15
+    sample_factor = min(data_points / 15.0, 1.0)
+    adjusted_confidence = round(raw_confidence * sample_factor, 2)
+
+    strength = _data_strength(data_points)
+
+    return {
+        "pattern_id": pattern_id,
+        "title": title,
+        "description": description,
+        "confidence": adjusted_confidence,
+        "data_points": data_points,
+        "data_strength": strength,
+        "category": category,
+    }
 
 
 def discover_patterns(db: Session, user_id: int) -> Dict[str, Any]:
@@ -88,16 +130,14 @@ def _detect_low_sleep_high_stress(logs: List[BehaviorLog], stress_map: Dict[date
         return None
 
     matched = sum(1 for l in low_sleep_days if stress_map.get(l.date, 0) > 50)
-    confidence = matched / len(low_sleep_days) if low_sleep_days else 0
+    raw_confidence = matched / len(low_sleep_days)
 
-    return {
-        "pattern_id": "low_sleep_high_stress",
-        "title": "Sleep Deficit → Stress Spike",
-        "description": f"Your stress tends to increase on days when your sleep drops below 6 hours. This pattern was observed on {matched} out of {len(low_sleep_days)} short-sleep days.",
-        "confidence": round(confidence, 2),
-        "data_points": len(low_sleep_days),
-        "category": "sleep"
-    }
+    return _build_pattern(
+        "low_sleep_high_stress",
+        "Sleep Deficit \u2192 Stress Spike",
+        f"Your stress tends to increase on days when your sleep drops below 6 hours. This pattern was observed on {matched} out of {len(low_sleep_days)} short-sleep days.",
+        raw_confidence, len(low_sleep_days), "sleep"
+    )
 
 
 def _detect_high_screen_negative_mood(logs: List[BehaviorLog]) -> Optional[Dict]:
@@ -107,16 +147,14 @@ def _detect_high_screen_negative_mood(logs: List[BehaviorLog]) -> Optional[Dict]
         return None
 
     matched = sum(1 for l in high_screen_days if l.mood < 5)
-    confidence = matched / len(high_screen_days)
+    raw_confidence = matched / len(high_screen_days)
 
-    return {
-        "pattern_id": "high_screen_negative_mood",
-        "title": "Excessive Screen Time → Low Mood",
-        "description": f"On days when your screen time exceeds 7 hours, your mood tends to drop below average. Detected on {matched} of {len(high_screen_days)} high-screen days.",
-        "confidence": round(confidence, 2),
-        "data_points": len(high_screen_days),
-        "category": "screen_time"
-    }
+    return _build_pattern(
+        "high_screen_negative_mood",
+        "Excessive Screen Time \u2192 Low Mood",
+        f"On days when your screen time exceeds 7 hours, your mood tends to drop below average. Detected on {matched} of {len(high_screen_days)} high-screen days.",
+        raw_confidence, len(high_screen_days), "screen_time"
+    )
 
 
 def _detect_exercise_mood_boost(logs: List[BehaviorLog]) -> Optional[Dict]:
@@ -130,22 +168,18 @@ def _detect_exercise_mood_boost(logs: List[BehaviorLog]) -> Optional[Dict]:
     avg_mood_exercise = sum(l.mood for l in exercise_days) / len(exercise_days)
     avg_mood_rest = sum(l.mood for l in rest_days) / len(rest_days)
 
-    # Mood must be at least 1 point higher on exercise days
     diff = avg_mood_exercise - avg_mood_rest
     if diff <= 0:
         return None
 
-    # Confidence based on how much higher exercise-day mood is (capped at 1.0)
-    confidence = min(diff / 3.0, 1.0)
+    raw_confidence = min(diff / 3.0, 1.0)
 
-    return {
-        "pattern_id": "exercise_mood_boost",
-        "title": "Exercise → Mood Improvement",
-        "description": f"Your mood averages {avg_mood_exercise:.1f}/10 on exercise days vs {avg_mood_rest:.1f}/10 on rest days — a {diff:.1f}-point boost.",
-        "confidence": round(confidence, 2),
-        "data_points": len(exercise_days) + len(rest_days),
-        "category": "exercise"
-    }
+    return _build_pattern(
+        "exercise_mood_boost",
+        "Exercise \u2192 Mood Improvement",
+        f"Your mood averages {avg_mood_exercise:.1f}/10 on exercise days vs {avg_mood_rest:.1f}/10 on rest days \u2014 a {diff:.1f}-point boost.",
+        raw_confidence, len(exercise_days) + len(rest_days), "exercise"
+    )
 
 
 def _detect_sleep_mood_correlation(logs: List[BehaviorLog]) -> Optional[Dict]:
@@ -155,35 +189,31 @@ def _detect_sleep_mood_correlation(logs: List[BehaviorLog]) -> Optional[Dict]:
         return None
 
     matched = sum(1 for l in low_sleep_days if l.mood < 5)
-    confidence = matched / len(low_sleep_days)
+    raw_confidence = matched / len(low_sleep_days)
 
-    return {
-        "pattern_id": "sleep_mood_correlation",
-        "title": "Poor Sleep → Low Mood",
-        "description": f"On {matched} of {len(low_sleep_days)} nights with less than 6 hours of sleep, your mood dropped below 5/10 the same day.",
-        "confidence": round(confidence, 2),
-        "data_points": len(low_sleep_days),
-        "category": "sleep"
-    }
+    return _build_pattern(
+        "sleep_mood_correlation",
+        "Poor Sleep \u2192 Low Mood",
+        f"On {matched} of {len(low_sleep_days)} nights with less than 6 hours of sleep, your mood dropped below 5/10 the same day.",
+        raw_confidence, len(low_sleep_days), "sleep"
+    )
 
 
 def _detect_screen_sleep_impact(logs: List[BehaviorLog]) -> Optional[Dict]:
-    """Screen > 8h today correlates with sleep < 6h (same day or data suggests pattern)."""
+    """Screen > 8h today correlates with sleep < 6h."""
     high_screen_days = [l for l in logs if l.screen_time > 8]
     if not high_screen_days:
         return None
 
     matched = sum(1 for l in high_screen_days if l.sleep_hours < 6)
-    confidence = matched / len(high_screen_days)
+    raw_confidence = matched / len(high_screen_days)
 
-    return {
-        "pattern_id": "screen_time_sleep_impact",
-        "title": "High Screen Time → Sleep Disruption",
-        "description": f"When your screen time goes above 8 hours, your sleep tends to suffer. Seen on {matched} of {len(high_screen_days)} high-screen days.",
-        "confidence": round(confidence, 2),
-        "data_points": len(high_screen_days),
-        "category": "screen_time"
-    }
+    return _build_pattern(
+        "screen_time_sleep_impact",
+        "High Screen Time \u2192 Sleep Disruption",
+        f"When your screen time goes above 8 hours, your sleep tends to suffer. Seen on {matched} of {len(high_screen_days)} high-screen days.",
+        raw_confidence, len(high_screen_days), "screen_time"
+    )
 
 
 def _detect_exercise_stress_reduction(logs: List[BehaviorLog], stress_map: Dict[date, float]) -> Optional[Dict]:
@@ -197,20 +227,18 @@ def _detect_exercise_stress_reduction(logs: List[BehaviorLog], stress_map: Dict[
     avg_stress_ex = sum(stress_map[l.date] for l in exercise_days) / len(exercise_days)
     avg_stress_rest = sum(stress_map[l.date] for l in rest_days) / len(rest_days)
 
-    diff = avg_stress_rest - avg_stress_ex  # positive means exercise reduces stress
+    diff = avg_stress_rest - avg_stress_ex
     if diff <= 0:
         return None
 
-    confidence = min(diff / 30.0, 1.0)
+    raw_confidence = min(diff / 30.0, 1.0)
 
-    return {
-        "pattern_id": "exercise_stress_reduction",
-        "title": "Exercise → Stress Reduction",
-        "description": f"Your average stress is {avg_stress_ex:.0f}% on exercise days vs {avg_stress_rest:.0f}% on rest days — exercise appears to lower stress by {diff:.0f} points.",
-        "confidence": round(confidence, 2),
-        "data_points": len(exercise_days) + len(rest_days),
-        "category": "exercise"
-    }
+    return _build_pattern(
+        "exercise_stress_reduction",
+        "Exercise \u2192 Stress Reduction",
+        f"Your average stress is {avg_stress_ex:.0f}% on exercise days vs {avg_stress_rest:.0f}% on rest days \u2014 exercise appears to lower stress by {diff:.0f} points.",
+        raw_confidence, len(exercise_days) + len(rest_days), "exercise"
+    )
 
 
 def _detect_weekend_weekday_diff(logs: List[BehaviorLog]) -> Optional[Dict]:
@@ -229,11 +257,10 @@ def _detect_weekend_weekday_diff(logs: List[BehaviorLog]) -> Optional[Dict]:
     mood_diff = abs(avg_mood_we - avg_mood_wd)
     sleep_diff = abs(avg_sleep_we - avg_sleep_wd)
 
-    # Only report if there's a meaningful difference
     if mood_diff < 1.0 and sleep_diff < 1.0:
         return None
 
-    confidence = min((mood_diff + sleep_diff) / 4.0, 1.0)
+    raw_confidence = min((mood_diff + sleep_diff) / 4.0, 1.0)
 
     better_on = "weekends" if avg_mood_we > avg_mood_wd else "weekdays"
     description = (
@@ -242,11 +269,10 @@ def _detect_weekend_weekday_diff(logs: List[BehaviorLog]) -> Optional[Dict]:
         f"You tend to feel better on {better_on}."
     )
 
-    return {
-        "pattern_id": "weekend_vs_weekday",
-        "title": "Weekend vs Weekday Pattern",
-        "description": description,
-        "confidence": round(confidence, 2),
-        "data_points": len(weekday_logs) + len(weekend_logs),
-        "category": "lifestyle"
-    }
+    return _build_pattern(
+        "weekend_vs_weekday",
+        "Weekend vs Weekday Pattern",
+        description,
+        raw_confidence, len(weekday_logs) + len(weekend_logs), "lifestyle"
+    )
+
