@@ -72,6 +72,8 @@ app.add_middleware(
 # Security & Rate Limiting Middleware
 app.add_middleware(RateLimitMiddleware)
 
+from app.routers import auth, behavior, predictions, insights, dashboard, daily_log, ml_predict, analytics, fitbit, therapy, chat
+
 # Include Routers
 app.include_router(auth.router)
 app.include_router(behavior.router)
@@ -83,6 +85,7 @@ app.include_router(ml_predict.router)
 app.include_router(analytics.router)
 app.include_router(fitbit.router)
 app.include_router(therapy.router)
+app.include_router(chat.router)
 
 
 @app.get("/", tags=["Health"])

@@ -406,6 +406,70 @@ class ApiService {
     throw _handleError(response, 'Failed to get chat history');
   }
 
+  // ══════════════════════════════════════════════════
+  // ── NEW PHASE 3: Chat Conversation Management ──
+  // ══════════════════════════════════════════════════
+
+  static Future<List<dynamic>> getConversations() async {
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse('$baseUrl/chat/conversations'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data']['conversations'];
+    }
+    throw _handleError(response, 'Failed to load conversations');
+  }
+
+  static Future<Map<String, dynamic>> createConversation({String title = "New Conversation"}) async {
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse('$baseUrl/chat/conversations'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'title': title}),
+    ));
+    if (response.statusCode == 201) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to create conversation');
+  }
+
+  static Future<void> deleteConversation(String conversationId) async {
+    final response = await _safeRequest(() async => http.delete(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode != 200) {
+      throw _handleError(response, 'Failed to delete conversation');
+    }
+  }
+
+  static Future<List<dynamic>> getConversationMessages(String conversationId) async {
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId/messages'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data']['messages'];
+    }
+    throw _handleError(response, 'Failed to load messages');
+  }
+
+  static Future<Map<String, dynamic>> sendConversationMessage(String conversationId, String message) async {
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId/messages'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'content': message}),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to send message');
+  }
+
   // ── Life Pattern Discovery (Phase 2) ──
   static Future<Map<String, dynamic>> getLifePatterns() async {
     final response = await _safeRequest(() async => http.get(

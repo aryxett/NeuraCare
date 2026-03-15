@@ -6,5 +6,9 @@ from app.models.journal import JournalEntry
 from app.models.therapy import ChatMessage
 from app.models.profile import BehaviorProfile
 from app.models.mood_log import MoodLog
+from app.models.chat import ChatConversation, ConversationMessage
 
-__all__ = ["User", "BehaviorLog", "Prediction", "FitbitToken", "JournalEntry", "ChatMessage", "BehaviorProfile", "MoodLog"]
+__all__ = [
+    "User", "BehaviorLog", "Prediction", "FitbitToken", "JournalEntry", 
+    "ChatMessage", "BehaviorProfile", "MoodLog", "ChatConversation", "ConversationMessage"
+]
