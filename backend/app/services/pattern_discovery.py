@@ -5,7 +5,7 @@ Detects hidden behavioral patterns from existing BehaviorLog and Prediction data
 Uses correlation-based rules with confidence scoring. No DB schema changes.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import date, timedelta
 from sqlalchemy.orm import Session
 from app.models.behavior_log import BehaviorLog
@@ -81,7 +81,7 @@ def discover_patterns(db: Session, user_id: int) -> Dict[str, Any]:
 # ─────────────────────────── Pattern Detectors ───────────────────────────
 
 
-def _detect_low_sleep_high_stress(logs: List[BehaviorLog], stress_map: Dict[date, float]) -> Dict | None:
+def _detect_low_sleep_high_stress(logs: List[BehaviorLog], stress_map: Dict[date, float]) -> Optional[Dict]:
     """Sleep < 6h on days where stress > 50."""
     low_sleep_days = [l for l in logs if l.sleep_hours < 6]
     if not low_sleep_days:
@@ -100,7 +100,7 @@ def _detect_low_sleep_high_stress(logs: List[BehaviorLog], stress_map: Dict[date
     }
 
 
-def _detect_high_screen_negative_mood(logs: List[BehaviorLog]) -> Dict | None:
+def _detect_high_screen_negative_mood(logs: List[BehaviorLog]) -> Optional[Dict]:
     """Screen time > 7h correlates with mood < 5."""
     high_screen_days = [l for l in logs if l.screen_time > 7]
     if not high_screen_days:
@@ -119,7 +119,7 @@ def _detect_high_screen_negative_mood(logs: List[BehaviorLog]) -> Dict | None:
     }
 
 
-def _detect_exercise_mood_boost(logs: List[BehaviorLog]) -> Dict | None:
+def _detect_exercise_mood_boost(logs: List[BehaviorLog]) -> Optional[Dict]:
     """Exercise days have noticeably higher mood than non-exercise days."""
     exercise_days = [l for l in logs if l.exercise]
     rest_days = [l for l in logs if not l.exercise]
@@ -148,7 +148,7 @@ def _detect_exercise_mood_boost(logs: List[BehaviorLog]) -> Dict | None:
     }
 
 
-def _detect_sleep_mood_correlation(logs: List[BehaviorLog]) -> Dict | None:
+def _detect_sleep_mood_correlation(logs: List[BehaviorLog]) -> Optional[Dict]:
     """Sleep < 6h correlates with mood < 5."""
     low_sleep_days = [l for l in logs if l.sleep_hours < 6]
     if not low_sleep_days:
@@ -167,7 +167,7 @@ def _detect_sleep_mood_correlation(logs: List[BehaviorLog]) -> Dict | None:
     }
 
 
-def _detect_screen_sleep_impact(logs: List[BehaviorLog]) -> Dict | None:
+def _detect_screen_sleep_impact(logs: List[BehaviorLog]) -> Optional[Dict]:
     """Screen > 8h today correlates with sleep < 6h (same day or data suggests pattern)."""
     high_screen_days = [l for l in logs if l.screen_time > 8]
     if not high_screen_days:
@@ -186,7 +186,7 @@ def _detect_screen_sleep_impact(logs: List[BehaviorLog]) -> Dict | None:
     }
 
 
-def _detect_exercise_stress_reduction(logs: List[BehaviorLog], stress_map: Dict[date, float]) -> Dict | None:
+def _detect_exercise_stress_reduction(logs: List[BehaviorLog], stress_map: Dict[date, float]) -> Optional[Dict]:
     """Exercise days have lower average stress than non-exercise days."""
     exercise_days = [l for l in logs if l.exercise and l.date in stress_map]
     rest_days = [l for l in logs if not l.exercise and l.date in stress_map]
@@ -213,7 +213,7 @@ def _detect_exercise_stress_reduction(logs: List[BehaviorLog], stress_map: Dict[
     }
 
 
-def _detect_weekend_weekday_diff(logs: List[BehaviorLog]) -> Dict | None:
+def _detect_weekend_weekday_diff(logs: List[BehaviorLog]) -> Optional[Dict]:
     """Detect if weekends vs weekdays have significantly different mood/sleep."""
     weekday_logs = [l for l in logs if l.date.weekday() < 5]
     weekend_logs = [l for l in logs if l.date.weekday() >= 5]
