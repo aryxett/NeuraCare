@@ -502,4 +502,3 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
       );
     }
   }
- }

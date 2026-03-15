@@ -11,6 +11,8 @@ from app.services.insight_engine import generate_insights, get_risk_level
 from app.schemas.analytics import Phase4DashboardSummary, Phase4WeeklyTrends
 from app.schemas.common import StandardizedResponse
 from app.services.auth_service import get_current_user
+from app.services.pattern_discovery import discover_patterns
+from app.schemas.patterns import LifePatternsResponse
 from cachetools import TTLCache
 
 # In-memory caches for performance optimization (10-second TTL for near-real-time updates)
@@ -230,3 +232,14 @@ async def clear_history(
     if current_user.user_id in trends_cache: del trends_cache[current_user.user_id]
     
     return {"success": True, "message": "History cleared successfully!"}
+
+
+@router.get("/life-patterns", response_model=StandardizedResponse[LifePatternsResponse])
+async def get_life_patterns(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Phase 2: Life Pattern Discovery — detects hidden behavioral correlations."""
+    result = discover_patterns(db, current_user.user_id)
+    return {"success": True, "data": result}
+

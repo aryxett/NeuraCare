@@ -4,6 +4,7 @@ import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'log_entry_screen.dart';
 import 'insights_screen.dart';
+import 'life_patterns_screen.dart';
 import 'history_screen.dart';
 import 'therapy_chat_screen.dart';
 import '../services/api_service.dart';
@@ -34,7 +35,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _dashboardKey.currentState?.refresh();
     _insightsKey.currentState?.refresh();
     _historyKey.currentState?.refresh();
-    setState(() => _currentIndex = 0);
+    // Intentionally omitting `setState(() => _currentIndex = 0);` 
+    // so the user can see their prediction result on the log screen without being redirected.
   }
 
   void _toggleSafeSpace(bool active) {
@@ -211,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   key: _dashboardKey, onStressUpdate: _toggleSafeSpace),
               const TherapyChatScreen(),
               LogEntryScreen(onSubmitted: _onDataSubmitted),
-              InsightsScreen(key: _insightsKey),
+              const LifePatternsScreen(),
               HistoryScreen(key: _historyKey),
             ],
           ),

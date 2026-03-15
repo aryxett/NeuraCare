@@ -133,6 +133,33 @@ class ApiService {
     throw _handleError(response, 'Failed to submit daily log');
   }
 
+  static Future<Map<String, dynamic>> getMoodCheckInStatus() async {
+    const url = '$baseUrl/mood-checkin/status';
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse(url),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to get mood check-in status', url: url);
+  }
+
+  static Future<Map<String, dynamic>> submitMoodCheckIn(String mood) async {
+    const url = '$baseUrl/mood-checkin';
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse(url),
+      headers: await _authHeaders(),
+      body: jsonEncode({'mood': mood}),
+    ));
+    if (response.statusCode == 201) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to submit mood check-in', url: url);
+  }
+
   static Future<Map<String, dynamic>> getAnalyticsDashboardSummary() async {
     const url = '$baseUrl/analytics/dashboard-summary';
     final response = await _safeRequest(() async => http.get(
@@ -377,5 +404,18 @@ class ApiService {
       if (json['success'] == true) return json['data'];
     }
     throw _handleError(response, 'Failed to get chat history');
+  }
+
+  // ── Life Pattern Discovery (Phase 2) ──
+  static Future<Map<String, dynamic>> getLifePatterns() async {
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse('$baseUrl/analytics/life-patterns'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to get life patterns');
   }
 }
