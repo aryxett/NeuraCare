@@ -63,12 +63,30 @@ def predict_stress(sleep_hours: float, screen_time: float, mood: int, exercise: 
         features = np.array([[sleep_hours, screen_time, mood, exercise_val]])
         prediction = _model.predict(features)[0]
     else:
-        # Rule-based fallback
-        sleep_factor = (8 - sleep_hours) * 8
-        screen_factor = (screen_time - 4) * 4
-        mood_factor = (5 - mood) * 6
-        exercise_factor = -12 if exercise else 8
-        prediction = 50 + sleep_factor + screen_factor + mood_factor + exercise_factor
+        # Rule-based fallback — designed to produce realistic scores
+        # Baseline: 30 (neutral starting point for an average day)
+        #
+        # Sleep component: 7-8h is optimal (score 0), <5h is bad (+25), >9h is slightly negative (+5)
+        if sleep_hours >= 7:
+            sleep_component = max(-10, (7 - sleep_hours) * 3)   # good sleep reduces stress
+        else:
+            sleep_component = (7 - sleep_hours) * 7              # poor sleep increases stress
+        
+        # Screen time component: <3h is great (-5), 3-6h is normal (0-5), >6h is bad (+5 to +15)
+        if screen_time <= 3:
+            screen_component = -5
+        elif screen_time <= 6:
+            screen_component = (screen_time - 3) * 2             # gentle ramp
+        else:
+            screen_component = 6 + (screen_time - 6) * 3         # steeper after 6h
+        
+        # Mood component: 7-10 is great (-10 to -5), 5-6 is neutral (0), 1-4 is bad (+5 to +20)
+        mood_component = (5.5 - mood) * 4
+        
+        # Exercise component: exercise reduces stress
+        exercise_component = -8 if exercise else 5
+        
+        prediction = 30 + sleep_component + screen_component + mood_component + exercise_component
 
     # Clamp to valid range without numpy
     return float(max(0, min(100, prediction)))
