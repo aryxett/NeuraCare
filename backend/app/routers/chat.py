@@ -45,7 +45,10 @@ async def get_conversations(
     """Get all conversations for the current user. Pinned first, then by most recent."""
     conversations = (
         db.query(ChatConversation)
-        .filter(ChatConversation.user_id == current_user.user_id)
+        .filter(
+            ChatConversation.user_id == current_user.user_id,
+            ChatConversation.title != "New Conversation"
+        )
         .order_by(ChatConversation.is_pinned.desc(), ChatConversation.updated_at.desc())
         .all()
     )
