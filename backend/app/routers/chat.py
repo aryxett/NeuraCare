@@ -25,6 +25,18 @@ from sqlalchemy import desc
 
 router = APIRouter(prefix="/api/chat", tags=["Chat Management"])
 
+@router.get("/sync-db")
+async def sync_db(db: Session = Depends(get_db)):
+    """Manually trigger database migration to add missing columns."""
+    from sqlalchemy import text
+    try:
+        # This is safe for PostgreSQL 9.6+
+        db.execute(text("ALTER TABLE chat_conversations ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE"))
+        db.commit()
+        return {"success": True, "message": "Database synced: is_pinned column added or verified."}
+    except Exception as e:
+        return {"success": False, "message": f"Sync skipped or failed: {str(e)}"}
+
 @router.get("/conversations", response_model=StandardizedResponse[ConversationListResponse])
 async def get_conversations(
     current_user: User = Depends(get_current_user),
