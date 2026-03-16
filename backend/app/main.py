@@ -35,16 +35,7 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created/verified")
 
-    # Auto-migrate: add is_pinned column if missing (safe for existing databases)
-    try:
-        from sqlalchemy import text
-        with engine.connect() as conn:
-            conn.execute(text("ALTER TABLE chat_conversations ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE"))
-            conn.commit()
-        logger.info("✅ is_pinned column verified")
-    except Exception as e:
-        logger.warning(f"Migration note: {e}")
-    
+
     logger.info(f"📦 Database: {settings.DATABASE_URL.split('://')[0]}")
 
     # Pre-load ML model
