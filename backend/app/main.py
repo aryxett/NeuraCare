@@ -34,6 +34,18 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Cognify AI Backend...")
     Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created/verified")
+
+    # Auto-migrate: add is_pinned column if it doesn't exist
+    from sqlalchemy import inspect as sa_inspect, text
+    insp = sa_inspect(engine)
+    if 'chat_conversations' in insp.get_table_names():
+        cols = [c['name'] for c in insp.get_columns('chat_conversations')]
+        if 'is_pinned' not in cols:
+            with engine.connect() as conn:
+                conn.execute(text("ALTER TABLE chat_conversations ADD COLUMN is_pinned BOOLEAN DEFAULT FALSE"))
+                conn.commit()
+            logger.info("✅ Added is_pinned column to chat_conversations")
+    
     logger.info(f"📦 Database: {settings.DATABASE_URL.split('://')[0]}")
 
     # Pre-load ML model
