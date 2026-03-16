@@ -208,20 +208,31 @@ async def send_message(
     history_msgs = history_msgs[1:]
     context = [{"role": m.role, "content": m.content} for m in reversed(history_msgs)]
     
-    # 4. Fetch current mood and mental state context
-    latest_mood_log = db.query(MoodLog).filter(MoodLog.user_id == current_user.user_id).order_by(desc(MoodLog.timestamp)).first()
-    current_mood = latest_mood_log.mood if latest_mood_log else None
+    # 4. Fetch current mood and mental state context (safe)
+    current_mood = None
+    mental_state = None
+    try:
+        latest_mood_log = db.query(MoodLog).filter(MoodLog.user_id == current_user.user_id).order_by(desc(MoodLog.timestamp)).first()
+        current_mood = latest_mood_log.mood if latest_mood_log else None
+    except Exception:
+        pass
     
-    from app.services.mental_state_service import calculate_mental_state_radar
-    mental_state = calculate_mental_state_radar(db, current_user.user_id) 
+    try:
+        from app.services.mental_state_service import calculate_mental_state_radar
+        mental_state = calculate_mental_state_radar(db, current_user.user_id)
+    except Exception:
+        pass
 
-    # 5. Generate AI reply
-    ai_text = generate_therapy_response(
-        user_message=data.content, 
-        history=context,
-        current_mood=current_mood,
-        mental_state=mental_state
-    )
+    # 5. Generate AI reply (with fallback)
+    try:
+        ai_text = generate_therapy_response(
+            user_message=data.content, 
+            history=context,
+            current_mood=current_mood,
+            mental_state=mental_state
+        )
+    except Exception:
+        ai_text = "I'm here to listen. Could you tell me more about how you're feeling?"
     
     # 6. Save AI message
     ai_msg = ConversationMessage(
@@ -237,17 +248,20 @@ async def send_message(
     
     # Generate smart title from first user message if title is still default
     new_title = None
-    user_msg_count = db.query(ConversationMessage).filter(
-        ConversationMessage.conversation_id == conversation_id,
-        ConversationMessage.role == "user"
-    ).count()
-    
-    if conversation.title == "New Conversation" and user_msg_count <= 1:
-        try:
-            new_title = generate_chat_title(data.content)
-        except Exception:
-            new_title = "Therapy Session"
-        conversation.title = new_title
+    try:
+        user_msg_count = db.query(ConversationMessage).filter(
+            ConversationMessage.conversation_id == conversation_id,
+            ConversationMessage.role == "user"
+        ).count()
+        
+        if conversation.title == "New Conversation" and user_msg_count <= 1:
+            try:
+                new_title = generate_chat_title(data.content)
+            except Exception:
+                new_title = "Therapy Session"
+            conversation.title = new_title
+    except Exception:
+        pass
         
     db.commit()
     db.refresh(user_msg)
@@ -258,3 +272,4 @@ async def send_message(
         "ai_message": ai_msg,
         "updated_title": new_title
     }}
+
