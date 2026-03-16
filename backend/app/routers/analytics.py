@@ -11,7 +11,9 @@ from app.services.insight_engine import generate_insights, get_risk_level
 from app.schemas.analytics import Phase4DashboardSummary, Phase4WeeklyTrends
 from app.schemas.common import StandardizedResponse
 from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user
 from app.services.pattern_discovery import discover_patterns
+from app.services.mental_state_service import calculate_mental_state_radar
 from app.schemas.patterns import LifePatternsResponse
 from cachetools import TTLCache
 
@@ -241,5 +243,15 @@ async def get_life_patterns(
 ):
     """Phase 2: Life Pattern Discovery — detects hidden behavioral correlations."""
     result = discover_patterns(db, current_user.user_id)
+    return {"success": True, "data": result}
+    
+
+@router.get("/mental-state-radar")
+async def get_mental_state_radar(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Phase 4: Mental State Radar metrics based on last 7 days."""
+    result = calculate_mental_state_radar(db, current_user.user_id)
     return {"success": True, "data": result}
 

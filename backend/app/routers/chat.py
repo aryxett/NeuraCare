@@ -10,6 +10,8 @@ from app.schemas.chat import (
     ConversationResponse,
     ConversationListResponse,
     ConversationCreateRequest,
+    ConversationRenameRequest,
+    ConversationPinRequest,
     ConversationMessagesResponse,
     SendMessageRequest,
     SendMessageResponse,
@@ -17,7 +19,9 @@ from app.schemas.chat import (
 )
 from app.schemas.common import StandardizedResponse
 from app.services.auth_service import get_current_user
-from app.services.therapy_llm_service import generate_therapy_response
+from app.services.therapy_llm_service import generate_therapy_response, generate_chat_title
+from app.models.mood_log import MoodLog
+from sqlalchemy import desc
 
 router = APIRouter(prefix="/api/chat", tags=["Chat Management"])
 
@@ -26,11 +30,11 @@ async def get_conversations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get all conversations for the current user, ordered by most recent."""
+    """Get all conversations for the current user. Pinned first, then by most recent."""
     conversations = (
         db.query(ChatConversation)
         .filter(ChatConversation.user_id == current_user.user_id)
-        .order_by(ChatConversation.updated_at.desc())
+        .order_by(ChatConversation.is_pinned.desc(), ChatConversation.updated_at.desc())
         .all()
     )
     return {"success": True, "data": {"conversations": conversations}}
@@ -42,7 +46,7 @@ async def create_conversation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Create a new empty conversation."""
+    """Create a new empty conversation and inject the initial greeting."""
     new_conv = ChatConversation(
         user_id=current_user.user_id,
         title=data.title or "New Conversation"
@@ -50,6 +54,16 @@ async def create_conversation(
     db.add(new_conv)
     db.commit()
     db.refresh(new_conv)
+
+    # Initial Context-Aware Greeting
+    greeting_msg = ConversationMessage(
+        conversation_id=new_conv.id,
+        role="assistant",
+        content="Hello, how are you feeling today?"
+    )
+    db.add(greeting_msg)
+    db.commit()
+
     return {"success": True, "data": new_conv}
 
 
@@ -73,6 +87,50 @@ async def delete_conversation(
     return {"success": True, "message": "Conversation deleted successfully"}
 
 
+@router.patch("/conversations/{conversation_id}/rename")
+async def rename_conversation(
+    conversation_id: str,
+    data: ConversationRenameRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Rename a conversation."""
+    conversation = db.query(ChatConversation).filter(
+        ChatConversation.id == conversation_id,
+        ChatConversation.user_id == current_user.user_id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    conversation.title = data.title.strip() or "Therapy Session"
+    db.commit()
+    db.refresh(conversation)
+    return {"success": True, "data": {"id": conversation.id, "title": conversation.title}}
+
+
+@router.patch("/conversations/{conversation_id}/pin")
+async def pin_conversation(
+    conversation_id: str,
+    data: ConversationPinRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Pin or unpin a conversation."""
+    conversation = db.query(ChatConversation).filter(
+        ChatConversation.id == conversation_id,
+        ChatConversation.user_id == current_user.user_id
+    ).first()
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    conversation.is_pinned = data.is_pinned
+    db.commit()
+    db.refresh(conversation)
+    return {"success": True, "data": {"id": conversation.id, "is_pinned": conversation.is_pinned}}
+
+
 @router.get("/conversations/{conversation_id}/messages", response_model=StandardizedResponse[ConversationMessagesResponse])
 async def get_messages(
     conversation_id: str,
@@ -80,7 +138,6 @@ async def get_messages(
     db: Session = Depends(get_db)
 ):
     """Get all messages for a specific conversation."""
-    # First verify ownership
     conversation = db.query(ChatConversation).filter(
         ChatConversation.id == conversation_id,
         ChatConversation.user_id == current_user.user_id
@@ -136,16 +193,25 @@ async def send_message(
         .limit(10)
         .all()
     )
-    # Exclude the just-saved message to avoid duplication in history payload, but include it implicitly as the current prompt.
-    # Wait, generate_therapy_response takes `message` and `history`.
-    # Let's pass the 10 messages before the current one as history.
-    history_msgs = history_msgs[1:] # remove the user message we just saved if it's the first in desc order
+    history_msgs = history_msgs[1:]
     context = [{"role": m.role, "content": m.content} for m in reversed(history_msgs)]
     
-    # 4. Generate AI reply
-    ai_text = generate_therapy_response(data.content, history=context)
+    # 4. Fetch current mood and mental state context
+    latest_mood_log = db.query(MoodLog).filter(MoodLog.user_id == current_user.user_id).order_by(desc(MoodLog.timestamp)).first()
+    current_mood = latest_mood_log.mood if latest_mood_log else None
     
-    # 5. Save AI message
+    from app.services.mental_state_service import calculate_mental_state_radar
+    mental_state = calculate_mental_state_radar(db, current_user.user_id) 
+
+    # 5. Generate AI reply
+    ai_text = generate_therapy_response(
+        user_message=data.content, 
+        history=context,
+        current_mood=current_mood,
+        mental_state=mental_state
+    )
+    
+    # 6. Save AI message
     ai_msg = ConversationMessage(
         conversation_id=conversation_id,
         role="assistant",
@@ -157,10 +223,19 @@ async def send_message(
     import datetime
     conversation.updated_at = datetime.datetime.utcnow()
     
-    # Update title to summarize first message if it's still Default
-    if conversation.title == "New Conversation" and len(history_msgs) == 0:
-        # Simple summarizing: take first 30 chars
-        conversation.title = (data.content[:27] + '...') if len(data.content) > 30 else data.content
+    # Generate smart title from first user message if title is still default
+    new_title = None
+    user_msg_count = db.query(ConversationMessage).filter(
+        ConversationMessage.conversation_id == conversation_id,
+        ConversationMessage.role == "user"
+    ).count()
+    
+    if conversation.title == "New Conversation" and user_msg_count <= 1:
+        try:
+            new_title = generate_chat_title(data.content)
+        except Exception:
+            new_title = "Therapy Session"
+        conversation.title = new_title
         
     db.commit()
     db.refresh(user_msg)
@@ -168,5 +243,6 @@ async def send_message(
     
     return {"success": True, "data": {
         "user_message": user_msg,
-        "ai_message": ai_msg
+        "ai_message": ai_msg,
+        "updated_title": new_title
     }}

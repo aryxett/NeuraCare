@@ -13,6 +13,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
   Map<String, dynamic>? _insightsData;
   Map<String, dynamic>? _dashboardData;
   Map<String, dynamic>? _trendsData;
+  Map<String, dynamic>? _radarData;
   bool _loading = true;
   String? _error;
 
@@ -43,18 +44,23 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
       
       Map<String, dynamic>? dashData;
       Map<String, dynamic>? trendsData;
+      Map<String, dynamic>? radarData;
       try {
         dashData = await ApiService.getAnalyticsDashboardSummary();
       } catch (_) { /* Dashboard data is optional enrichment */ }
       try {
         trendsData = await ApiService.getAnalyticsWeeklyTrends();
       } catch (_) { /* Trends data is optional enrichment */ }
+      try {
+        radarData = await ApiService.getMentalStateRadar();
+      } catch (_) { /* Radar data is optional enrichment */ }
 
       if (mounted) {
         setState(() { 
           _insightsData = insightsData;
           _dashboardData = dashData;
           _trendsData = trendsData;
+          _radarData = radarData;
           _loading = false; 
         });
         _animController.forward(from: 0.0);
@@ -213,16 +219,18 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             const SizedBox(height: 32),
 
             // Section 1: Mental State Overview
-            _buildAnimatedItem(
-              2,
-              _buildSectionHeader('Mental State', Icons.psychology_outlined, primaryTextColor),
-            ),
-            const SizedBox(height: 16),
-            _buildAnimatedItem(
-              3,
-              _buildMentalStateCard(stressScore, risk, sleepImpact, isDark, primaryTextColor, secondaryTextColor, cardColor),
-            ),
-            const SizedBox(height: 32),
+            if (_radarData != null && _radarData!['has_data'] == true) ...[
+              _buildAnimatedItem(
+                2,
+                _buildSectionHeader('Mental State Radar', Icons.radar_rounded, primaryTextColor),
+              ),
+              const SizedBox(height: 16),
+              _buildAnimatedItem(
+                3,
+                _buildMentalStateRadarCard(_radarData!, isDark, primaryTextColor, secondaryTextColor, cardColor),
+              ),
+              const SizedBox(height: 32),
+            ],
 
             // Section 2: Behavioral Insights
             _buildAnimatedItem(
@@ -292,8 +300,13 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
     );
   }
 
-  Widget _buildMentalStateCard(int score, String risk, String summaryText, bool isDark, Color primary, Color secondary, Color cardColor) {
-    final riskColor = _riskColor(risk);
+  Widget _buildMentalStateRadarCard(Map<String, dynamic> radarData, bool isDark, Color primary, Color secondary, Color cardColor) {
+    final int stabilityIndex = radarData['mental_stability_index'] ?? 0;
+    final String burnoutRisk = radarData['burnout_risk_level'] ?? 'Unknown';
+    final String moodStability = radarData['mood_stability'] ?? 'Unknown';
+    
+    final riskColor = _riskColor(burnoutRisk);
+    final stabilityColor = stabilityIndex >= 70 ? const Color(0xFF10B981) : (stabilityIndex >= 40 ? const Color(0xFFF59E0B) : const Color(0xFFEF4444));
     
     return GlassContainer(
       padding: const EdgeInsets.all(24),
@@ -306,7 +319,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             children: [
               // Animated Circular Gauge
               TweenAnimationBuilder<double>(
-                tween: Tween<double>(begin: 0.0, end: score.toDouble()),
+                tween: Tween<double>(begin: 0.0, end: stabilityIndex.toDouble()),
                 duration: const Duration(milliseconds: 1400),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
@@ -319,7 +332,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                           child: CircularProgressIndicator(
                             value: 1.0,
                             backgroundColor: Colors.transparent,
-                            color: riskColor.withOpacity(0.15), // slightly more visible track
+                            color: stabilityColor.withOpacity(0.15), // slightly more visible track
                             strokeWidth: 8,
                           ),
                         ),
@@ -327,7 +340,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                           child: CircularProgressIndicator(
                             value: value / 100,
                             backgroundColor: Colors.transparent,
-                            color: riskColor,
+                            color: stabilityColor,
                             strokeWidth: 8,
                             strokeCap: StrokeCap.round,
                           ),
@@ -335,9 +348,9 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                         Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(value.toInt().toString(), style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: riskColor, height: 1.0)),
+                            Text('${value.toInt()}%', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: stabilityColor, height: 1.0)),
                             const SizedBox(height: 4),
-                            Text('Stress', style: TextStyle(fontSize: 13, color: secondary, fontWeight: FontWeight.w500)),
+                            Text('Index', style: TextStyle(fontSize: 13, color: secondary, fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ],
@@ -360,10 +373,10 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: riskColor.withOpacity(0.3)),
                         ),
-                        child: Text('$risk Risk', style: TextStyle(color: riskColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: Text('$burnoutRisk Risk', style: TextStyle(color: riskColor, fontSize: 12, fontWeight: FontWeight.w600)),
                       ),
                       const SizedBox(height: 12),
-                      Text("Your stress level is $risk and relatively stable compared to the past week.", 
+                      Text("Your stress level is $burnoutRisk and relatively stable compared to the past week.", 
                         style: TextStyle(color: secondary, fontSize: 13, height: 1.4)),
                     ],
                   ),

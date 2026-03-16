@@ -1,0 +1,24 @@
+﻿C:\Python314\python.exe
+ : Could not find 
+platform independent 
+libraries <prefix>
+At line:1 char:1
++ C:\Python314\python.e
+xe test_azure.py > 
+test_azure_output.txt 
+2>&1 ;  ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Could not fin   
+ d ...raries <prefi    
+x>:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+TITLE: Workload Overwhelm
+RESP: Of course! I'm here for you. What's on your mind?

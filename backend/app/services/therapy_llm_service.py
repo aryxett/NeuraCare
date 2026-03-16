@@ -5,11 +5,59 @@ from app.services.therapy_service import get_therapy_response as fallback_therap
 
 settings = get_settings()
 
-def generate_therapy_response(user_message: str, history: List[Dict[str, str]] = None) -> str:
+def generate_chat_title(message: str) -> str:
+    """
+    Generate a short 3-5 word semantic title based on the first user message.
+    """
+    if len(message) < 5:
+        return "Therapy Session"
+        
+    try:
+        system_prompt = (
+            "You are a title generator. Generate a short, semantic 3-5 word title summarizing the topic of the user's message. "
+            "Remove filler words such as 'I', 'I'm', 'Can you', etc. "
+            "Output ONLY the title without any quotes or extra text. Example: User: 'I feel stressed about work deadlines' -> 'Work Stress'"
+        )
+        
+        headers = {
+            "api-key": settings.AZURE_OPENAI_API_KEY,
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message[:500]}
+            ],
+            "temperature": 0.3,
+            "max_tokens": 15
+        }
+
+        with httpx.Client() as client:
+            response = client.post(
+                settings.AZURE_OPENAI_ENDPOINT,
+                headers=headers,
+                json=payload,
+                timeout=10.0
+            )
+            response.raise_for_status()
+            data = response.json()
+            title = data["choices"][0]["message"]["content"].strip(' "\'')
+            return title if title else "Therapy Session"
+            
+    except Exception as e:
+        print(f"Azure OpenAI Title Error: {e}")
+        return "Therapy Session"
+
+
+def generate_therapy_response(
+    user_message: str, 
+    history: List[Dict[str, str]] = None,
+    current_mood: str = None,
+    mental_state: Dict = None
+) -> str:
     """
     Generates a supportive AI therapy response using Azure OpenAI.
-    Includes the last 5 messages as context.
-    Falls back to rule-based therapy if LLM fails.
     """
     if len(user_message) > 1000:
         user_message = user_message[:1000]
@@ -24,13 +72,41 @@ def generate_therapy_response(user_message: str, history: List[Dict[str, str]] =
         )
 
     try:
-        system_prompt = "You are a supportive, empathetic, and non-judgmental AI mental wellness assistant. Your primary role is to acknowledge emotions, validate feelings, and provide brief, supportive suggestions. Avoid toxic positivity, generic motivational quotes, or dismissive language. Do NOT attempt to act as a therapist or doctor. You must NEVER provide medical diagnoses or unsafe advice. Keep responses concise and focused on the user's immediate emotional state."
+        system_prompt = (
+            "You are a supportive, empathetic, and non-judgmental AI mental wellness assistant. "
+            "Your primary role is to acknowledge emotions, validate feelings, and provide supportive suggestions.\n\n"
+            "Here are your strict operating rules:\n"
+            "1. NO MEDICAL ADVICE: Do NOT attempt to act as a therapist or doctor. Never diagnose.\n"
+            "2. NO TOXIC POSITIVITY: Avoid generic motivational quotes or dismissive language. Keep it real.\n"
+            "3. EMOTIONAL CONTEXT MEMORY: If the user refers to something discussed earlier in this conversation, remember the emotional theme and bring it up supportively.\n"
+            "4. MOOD AWARENESS: "
+        )
         
+        if current_mood:
+            system_prompt += f"The user indicated their current mood today is '{current_mood}'. Gently adjust your tone to reflect this if appropriate.\n"
+        else:
+            system_prompt += "Adjust your tone based strictly on the user's messages.\n"
+            
+        system_prompt += (
+            "5. AI REFLECTION PROMPTS: Occasionally (not always) end your response with a supportive reflective question used in therapy (e.g. 'What usually helps you feel better in situations like this?'). Encourage healthy self-reflection.\n"
+            "Keep responses concise, natural, and focused on the user's immediate emotional state."
+        )
+
+        if mental_state:
+            system_prompt += f"\n\nContext for AI: The user's recent automated mental state metrics are: {mental_state}. Use this implicitly to guide your support."
+
         # Build the messages array
         messages = [{"role": "system", "content": system_prompt}]
         
         if history:
-            messages.extend(history)
+            # Convert 'model' role to 'assistant' for Azure OpenAI compatibility
+            formatted_history = []
+            for msg in history:
+                if msg["role"] == "model":
+                    formatted_history.append({"role": "assistant", "content": msg["content"]})
+                else:
+                    formatted_history.append(msg)
+            messages.extend(formatted_history)
             
         messages.append({"role": "user", "content": user_message})
 
@@ -59,5 +135,4 @@ def generate_therapy_response(user_message: str, history: List[Dict[str, str]] =
             
     except Exception as e:
         print(f"Azure OpenAI LLM Error: {e}")
-        # Use simple rule-based fallback if API fails
         return fallback_therapy_response(user_message)

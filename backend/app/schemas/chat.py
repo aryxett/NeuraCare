@@ -8,9 +8,16 @@ class ConversationBase(BaseModel):
 class ConversationCreateRequest(ConversationBase):
     pass
 
+class ConversationRenameRequest(BaseModel):
+    title: str
+
+class ConversationPinRequest(BaseModel):
+    is_pinned: bool
+
 class ConversationResponse(ConversationBase):
     id: str
     user_id: int
+    is_pinned: bool = False
     created_at: datetime
     updated_at: datetime
 
@@ -41,3 +48,4 @@ class ConversationMessagesResponse(BaseModel):
 class SendMessageResponse(BaseModel):
     user_message: MessageResponse
     ai_message: MessageResponse
+    updated_title: Optional[str] = None

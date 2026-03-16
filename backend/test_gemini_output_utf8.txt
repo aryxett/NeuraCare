@@ -1,0 +1,43 @@
+﻿C:\Python314\python.exe
+ : Could not find 
+platform independent 
+libraries <prefix>
+At line:1 char:1
++ C:\Python314\python.e
+xe test_gemini.py > 
+test_gemini_output.txt 
+2>&1
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Could not fin   
+ d ...raries <prefi    
+x>:String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+Gemini Title Error: 400 API key expired. Please renew the API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key expired. Please renew the API key."
+]
+TITLE: Therapy Session
+Gemini LLM Error: 400 API key expired. Please renew the API key. [reason: "API_KEY_INVALID"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "generativelanguage.googleapis.com"
+}
+, locale: "en-US"
+message: "API key expired. Please renew the API key."
+]
+RESP: I'm here to listen. How has your day been overall?

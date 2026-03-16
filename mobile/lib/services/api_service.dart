@@ -353,6 +353,22 @@ class ApiService {
   }
 
   // ══════════════════════════════════════════════════
+  // ── NEW PHASE 4: Mental State Radar ──
+  // ══════════════════════════════════════════════════
+  
+  static Future<Map<String, dynamic>> getMentalStateRadar() async {
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse('$baseUrl/analytics/mental-state-radar'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to fetch mental state radar');
+  }
+
+  // ══════════════════════════════════════════════════
   // ── NEW PHASE 8: AI Therapy Assistant Endpoints ──
   // ══════════════════════════════════════════════════
 
@@ -468,6 +484,34 @@ class ApiService {
       if (json['success'] == true) return json['data'];
     }
     throw _handleError(response, 'Failed to send message');
+  }
+
+  // ── Conversation Management (Pin / Rename) ──
+
+  static Future<Map<String, dynamic>> renameConversation(String conversationId, String newTitle) async {
+    final response = await _safeRequest(() async => http.patch(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId/rename'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'title': newTitle}),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to rename conversation');
+  }
+
+  static Future<Map<String, dynamic>> pinConversation(String conversationId, bool isPinned) async {
+    final response = await _safeRequest(() async => http.patch(
+      Uri.parse('$baseUrl/chat/conversations/$conversationId/pin'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'is_pinned': isPinned}),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to pin conversation');
   }
 
   // ── Life Pattern Discovery (Phase 2) ──
