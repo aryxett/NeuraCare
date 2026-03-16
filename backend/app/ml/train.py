@@ -22,7 +22,7 @@ def train_model(model_dir: str = "app/ml/model"):
 
     # Generate training data
     print("\n📥 Generating synthetic training data...")
-    df = generate_dataset(n_samples=5000)
+    df = generate_dataset(n_samples=1000)
     print(f"   Dataset shape: {df.shape}")
 
     # Prepare features and target
@@ -41,11 +41,10 @@ def train_model(model_dir: str = "app/ml/model"):
     # Train Random Forest Classifier
     print("\n🌲 Training RandomForestClassifier...")
     rf_model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=15,
+        n_estimators=50,
+        max_depth=10,
         min_samples_split=5,
-        random_state=42,
-        n_jobs=-1
+        random_state=42
     )
     rf_model.fit(X_train, y_train)
     rf_predictions = rf_model.predict(X_test)
