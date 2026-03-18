@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # JWT Authentication
     JWT_SECRET_KEY: str = "dev-secret-key-change-me"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 43200  # 30 days
 
     # ML Model
     ML_MODEL_PATH: str = "app/ml/model/stress_model.joblib"
