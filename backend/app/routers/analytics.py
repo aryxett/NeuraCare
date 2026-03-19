@@ -255,3 +255,14 @@ async def get_mental_state_radar(
     result = calculate_mental_state_radar(db, current_user.user_id)
     return {"success": True, "data": result}
 
+from app.schemas.correlation import CorrelationResponse
+from app.services.correlation_engine import compute_correlations
+
+@router.get("/correlations", response_model=StandardizedResponse[CorrelationResponse])
+async def get_correlations(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Phase 3: Behavioral Correlation Engine — detects statistical links between behavior & mood/stress."""
+    correlations_data = compute_correlations(db, current_user.user_id)
+    return {"success": True, "data": CorrelationResponse(correlations=correlations_data)}

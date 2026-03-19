@@ -14,6 +14,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
   Map<String, dynamic>? _dashboardData;
   Map<String, dynamic>? _trendsData;
   Map<String, dynamic>? _radarData;
+  Map<String, dynamic>? _correlationsData;
   bool _loading = true;
   String? _error;
 
@@ -45,6 +46,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
       Map<String, dynamic>? dashData;
       Map<String, dynamic>? trendsData;
       Map<String, dynamic>? radarData;
+      Map<String, dynamic>? correlationsData;
       try {
         dashData = await ApiService.getAnalyticsDashboardSummary();
       } catch (_) { /* Dashboard data is optional enrichment */ }
@@ -54,6 +56,9 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
       try {
         radarData = await ApiService.getMentalStateRadar();
       } catch (_) { /* Radar data is optional enrichment */ }
+      try {
+        correlationsData = await ApiService.getAnalyticsCorrelations();
+      } catch (_) { /* Correlations data is optional enrichment */ }
 
       if (mounted) {
         setState(() { 
@@ -61,6 +66,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
           _dashboardData = dashData;
           _trendsData = trendsData;
           _radarData = radarData;
+          _correlationsData = correlationsData;
           _loading = false; 
         });
         _animController.forward(from: 0.0);
@@ -283,6 +289,35 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 9,
                 _buildListCard(recs, Icons.adjust_rounded, const Color(0xFF10B981), 16.0, cardColor, primaryTextColor, secondaryTextColor),
               ),
+              const SizedBox(height: 32),
+            ],
+
+            // Section 5: Behavioral Correlations
+            if (_correlationsData != null && _correlationsData!['correlations'] != null) ...[
+              _buildAnimatedItem(
+                10,
+                _buildSectionHeader('Correlation Insights', Icons.swap_calls_rounded, primaryTextColor),
+              ),
+              const SizedBox(height: 16),
+              _buildAnimatedItem(
+                11,
+                SizedBox(
+                  height: 180,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    clipBehavior: Clip.none,
+                    itemCount: (_correlationsData!['correlations'] as List).length,
+                    itemBuilder: (context, index) {
+                      final corr = _correlationsData!['correlations'][index];
+                      return Padding(
+                        padding: EdgeInsets.only(right: index == (_correlationsData!['correlations'] as List).length - 1 ? 0 : 16),
+                        child: _buildCorrelationCard(corr, cardColor, primaryTextColor, secondaryTextColor),
+                      );
+                    },
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -450,6 +485,54 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildCorrelationCard(Map<String, dynamic> correlation, Color cardBg, Color primary, Color secondary) {
+    final title = correlation['title'] ?? '';
+    final explanation = correlation['explanation'] ?? '';
+    final conf = correlation['confidence_level'] ?? 'Low';
+    
+    Color confColor;
+    switch (conf) {
+      case 'High': confColor = const Color(0xFF10B981); break;
+      case 'Moderate': confColor = const Color(0xFFF59E0B); break;
+      case 'None': confColor = const Color(0xFF9CA3AF); break;
+      default: confColor = const Color(0xFFEF4444);
+    }
+    
+    return Container(
+      width: 280,
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black.withOpacity(0.04)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: primary))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(color: confColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                child: Text(conf == 'None' ? 'Info' : '$conf Confidence', style: TextStyle(color: confColor, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Text(explanation, style: TextStyle(color: secondary, fontSize: 13, height: 1.5)),
+          ),
+        ],
       ),
     );
   }
