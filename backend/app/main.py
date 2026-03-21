@@ -62,6 +62,16 @@ async def lifespan(app: FastAPI):
                             logger.info(f"✅ Added missing column: {col_name}")
                     except Exception as e3:
                          logger.warning(f"⚠️ Failed to add column {col_name}: {e3}")
+            
+            # Also ensure users.profile_metadata exists
+            user_cols = [c['name'] for c in inspector.get_columns('users')]
+            if 'profile_metadata' not in user_cols:
+                try:
+                    with engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN profile_metadata TEXT DEFAULT '{}'"))
+                        logger.info("✅ Added missing column: users.profile_metadata")
+                except Exception as e3:
+                    logger.warning(f"⚠️ Failed to add users.profile_metadata: {e3}")
         except Exception as e2:
             logger.warning(f"⚠️ Fallback column migration also failed (non-fatal): {e2}")
 

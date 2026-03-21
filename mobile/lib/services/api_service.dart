@@ -573,4 +573,40 @@ class ApiService {
     }
     throw _handleError(response, 'Failed to get life patterns');
   }
+
+  // ══════════════════════════════════════════════════
+  // ── Profile Management ──
+  // ══════════════════════════════════════════════════
+
+  static Future<Map<String, dynamic>> updateProfile(Map<String, dynamic> data) async {
+    final response = await _safeRequest(() async => http.patch(
+      Uri.parse('$baseUrl/auth/profile'),
+      headers: await _authHeaders(),
+      body: jsonEncode(data),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) {
+        await saveUserLocally(json['data']);
+        return json['data'];
+      }
+    }
+    throw _handleError(response, 'Failed to update profile');
+  }
+
+  static Future<void> saveUserLocally(Map<String, dynamic> userData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('cognify_user', jsonEncode(userData));
+  }
+
+  static Future<Map<String, dynamic>?> getCachedUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('cognify_user');
+    if (data != null) {
+      try {
+        return jsonDecode(data) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+    return null;
+  }
 }

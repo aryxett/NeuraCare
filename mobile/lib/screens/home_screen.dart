@@ -7,6 +7,7 @@ import 'insights_screen.dart';
 import 'life_patterns_screen.dart';
 import 'history_screen.dart';
 import 'therapy_chat_screen.dart';
+import 'profile_screen.dart';
 import '../services/api_service.dart';
 import '../services/usage_tracker_service.dart';
 import '../widgets/glass_container.dart';
@@ -22,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   bool _safeSpaceMode = false;
+  String _userName = '';
 
   final _dashboardKey = GlobalKey<DashboardScreenState>();
   final _insightsKey = GlobalKey<InsightsScreenState>();
@@ -31,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initUsageTracking();
+    _loadUserName();
   }
 
   Future<void> _initUsageTracking() async {
@@ -53,6 +56,36 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _logout() async {
     await ApiService.clearToken();
     widget.onLogout();
+  }
+
+  Future<void> _loadUserName() async {
+    try {
+      // Try cached first for instant display
+      final cached = await ApiService.getCachedUser();
+      if (cached != null && mounted) {
+        setState(() => _userName = cached['name'] ?? '');
+      }
+      // Then refresh from API
+      final data = await ApiService.getMe();
+      await ApiService.saveUserLocally(data);
+      if (mounted) setState(() => _userName = data['name'] ?? '');
+    } catch (_) {}
+  }
+
+  void _openProfile() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => ProfileScreen(onLogout: _logout),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero)
+                .animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+            child: FadeTransition(opacity: animation, child: child),
+          );
+        },
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    ).then((_) => _loadUserName()); // Refresh name after returning
   }
 
   void _onDataSubmitted() {
@@ -169,62 +202,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   tooltip: 'Toggle Theme',
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.delete_sweep_rounded,
-                    size: 20, color: Color(0xFFEF4444)),
-                onPressed: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      title: const Text('Clear History?'),
-                      content: const Text('This will delete all your logs and AI predictions. This action cannot be undone.'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true), 
-                          child: const Text('Clear', style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold)),
-                        ),
-                      ],
+              const SizedBox(width: 4),
+              GestureDetector(
+                onTap: _openProfile,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  );
-
-                  if (confirmed == true) {
-                    try {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Clearing history...'),
-                            duration: Duration(seconds: 1)),
-                      );
-                      await ApiService.clearHistory();
-                      _dashboardKey.currentState?.refresh();
-                      _insightsKey.currentState?.refresh();
-                      _historyKey.currentState?.refresh();
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('✅ History cleared successfully!'),
-                              backgroundColor: Color(0xFF10B981)),
-                        );
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(e.toString()),
-                              backgroundColor: Colors.redAccent),
-                        );
-                      }
-                    }
-                  }
-                },
-                tooltip: 'Clear History',
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout_rounded, size: 20),
-                onPressed: _logout,
-                tooltip: 'Sign Out',
-                color: isDark ? Colors.white70 : const Color(0xFF3B82F6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
