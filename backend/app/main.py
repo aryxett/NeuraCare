@@ -35,6 +35,28 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     logger.info("✅ Database tables created/verified")
 
+    # Run Alembic migrations safely (won't crash if it fails)
+    try:
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("✅ Alembic migrations applied successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Alembic migration failed (non-fatal): {e}")
+        # Fallback: add columns directly via raw SQL if they don't exist
+        try:
+            from sqlalchemy import text, inspect
+            inspector = inspect(engine)
+            existing_cols = [c['name'] for c in inspector.get_columns('behavior_logs')]
+            with engine.begin() as conn:
+                for col_name in ['social_time', 'entertainment_time', 'productivity_time']:
+                    if col_name not in existing_cols:
+                        conn.execute(text(f"ALTER TABLE behavior_logs ADD COLUMN {col_name} FLOAT DEFAULT 0.0"))
+                        logger.info(f"✅ Added missing column: {col_name}")
+        except Exception as e2:
+            logger.warning(f"⚠️ Fallback column migration also failed (non-fatal): {e2}")
+
 
     logger.info(f"📦 Database: {settings.DATABASE_URL.split('://')[0]}")
 
