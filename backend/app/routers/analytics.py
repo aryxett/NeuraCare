@@ -24,49 +24,6 @@ trends_cache = TTLCache(maxsize=1000, ttl=10)
 # We use /api/analytics as a prefix to avoid colliding with the older /api/dashboard-summary from previous phases
 router = APIRouter(prefix="/api/analytics", tags=["Phase 4 - Analytics"])
 
-@router.get("/debug-db")
-async def debug_db(db: Session = Depends(get_db)):
-    """Temporary debug endpoint to check DB state on Render."""
-    import traceback
-    result = {"status": "ok", "checks": {}}
-    try:
-        # Check 1: Can we query BehaviorLog at all?
-        from sqlalchemy import text
-        cols = db.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name='behavior_logs'")).fetchall()
-        result["checks"]["columns"] = [c[0] for c in cols]
-    except Exception as e:
-        result["checks"]["columns_error"] = f"{type(e).__name__}: {str(e)}"
-    
-    try:
-        # Check 2: Can we query a BehaviorLog row?
-        log = db.query(BehaviorLog).first()
-        result["checks"]["query_ok"] = True
-        result["checks"]["has_logs"] = log is not None
-    except Exception as e:
-        result["checks"]["query_error"] = f"{type(e).__name__}: {str(e)}"
-        result["checks"]["query_traceback"] = traceback.format_exc()
-    
-    try:
-        # Check 3: Check alembic_version
-        from sqlalchemy import text
-        ver = db.execute(text("SELECT version_num FROM alembic_version")).fetchall()
-        result["checks"]["alembic_version"] = [v[0] for v in ver]
-    except Exception as e:
-        result["checks"]["alembic_error"] = f"{type(e).__name__}: {str(e)}"
-    
-    try:
-        # Check 4: Try the full dashboard-summary logic
-        test_log = db.query(BehaviorLog).order_by(BehaviorLog.date.desc()).first()
-        if test_log:
-            result["checks"]["latest_log_date"] = str(test_log.date)
-            result["checks"]["latest_log_sleep"] = test_log.sleep_hours
-            result["checks"]["latest_log_social_time"] = getattr(test_log, 'social_time', 'ATTR_MISSING')
-    except Exception as e:
-        result["checks"]["latest_log_error"] = f"{type(e).__name__}: {str(e)}"
-        result["checks"]["latest_log_traceback"] = traceback.format_exc()
-    
-    return result
-
 @router.get("/dashboard-summary", response_model=StandardizedResponse[Phase4DashboardSummary])
 async def get_dashboard_summary(
     current_user: User = Depends(get_current_user),
