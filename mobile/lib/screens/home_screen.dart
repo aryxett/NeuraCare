@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
@@ -24,6 +25,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   bool _safeSpaceMode = false;
   String _userName = '';
+  String? _avatarBase64;
 
   final _dashboardKey = GlobalKey<DashboardScreenState>();
   final _insightsKey = GlobalKey<InsightsScreenState>();
@@ -63,12 +65,24 @@ class _HomeScreenState extends State<HomeScreen> {
       // Try cached first for instant display
       final cached = await ApiService.getCachedUser();
       if (cached != null && mounted) {
-        setState(() => _userName = cached['name'] ?? '');
+        setState(() {
+          _userName = cached['name'] ?? '';
+          if (cached['profile_metadata'] != null) {
+            _avatarBase64 = cached['profile_metadata']['avatar_base64'];
+          }
+        });
       }
       // Then refresh from API
       final data = await ApiService.getMe();
       await ApiService.saveUserLocally(data);
-      if (mounted) setState(() => _userName = data['name'] ?? '');
+      if (mounted) {
+        setState(() {
+          _userName = data['name'] ?? '';
+          if (data['profile_metadata'] != null) {
+            _avatarBase64 = data['profile_metadata']['avatar_base64'];
+          }
+        });
+      }
     } catch (_) {}
   }
 
@@ -223,13 +237,21 @@ class _HomeScreenState extends State<HomeScreen> {
                         spreadRadius: 1,
                       ),
                     ],
+                    image: _avatarBase64 != null && _avatarBase64!.isNotEmpty
+                        ? DecorationImage(
+                            image: MemoryImage(base64Decode(_avatarBase64!)),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: Center(
-                    child: Text(
-                      _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  child: _avatarBase64 != null && _avatarBase64!.isNotEmpty
+                      ? null
+                      : Center(
+                          child: Text(
+                            _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
+                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                          ),
+                        ),
                 ),
               ),
             ],

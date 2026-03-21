@@ -17,6 +17,7 @@ dependencies:
   provider: ^6.1.5+1
   url_launcher: ^6.2.5
   app_usage: ^4.1.0
+  image_picker: ^1.2.1
 
 dev_dependencies:
   flutter_test:
