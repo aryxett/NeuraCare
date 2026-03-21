@@ -318,6 +318,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             // Section 5: Intelligence — Risk Scores (F1)
             // ══════════════════════════════════════════
             if (_intelligenceData != null) ...[
+              const SizedBox(height: 32),
               ..._buildRiskScoresSection(isDark, primaryTextColor, secondaryTextColor, cardColor),
               const SizedBox(height: 32),
 
@@ -833,16 +834,17 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(child: Text(summary['summary'] ?? '', style: TextStyle(color: secondary, fontSize: 13, height: 1.5))),
-                const SizedBox(width: 8),
-                _buildConfidenceBadge(strength),
-              ],
+            Text(summary['summary'] ?? '', style: TextStyle(color: secondary, fontSize: 13, height: 1.5)),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _buildConfidenceBadge(strength),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            Wrap(
+              alignment: WrapAlignment.spaceAround,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 _buildTrendChip('Mood', moodTrend, trendColor(moodTrend, false), trendIcon(moodTrend)),
                 _buildTrendChip('Sleep', sleepTrend, trendColor(sleepTrend, false), trendIcon(sleepTrend)),
@@ -1170,25 +1172,27 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Predicted Stress Tomorrow', style: TextStyle(color: secondaryText, fontSize: 12, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('$score%', style: TextStyle(color: primaryText, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: riskColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                          child: Text(riskLevel, style: TextStyle(color: riskColor, fontSize: 11, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Predicted Stress Tomorrow', style: TextStyle(color: secondaryText, fontSize: 12, fontWeight: FontWeight.w500)),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text('$score%', style: TextStyle(color: primaryText, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(color: riskColor.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                            child: Text(riskLevel, style: TextStyle(color: riskColor, fontSize: 11, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
