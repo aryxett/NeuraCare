@@ -13,6 +13,12 @@ class BehaviorLog(Base):
     screen_time = Column(Float, nullable=False)
     mood = Column(Integer, nullable=False)  # 1-10 scale
     exercise = Column(Boolean, default=False)
+    
+    # Phase 5: App Usage Categories (in hours)
+    social_time = Column(Float, nullable=True, default=0.0)
+    entertainment_time = Column(Float, nullable=True, default=0.0)
+    productivity_time = Column(Float, nullable=True, default=0.0)
+    
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
     # Relationships

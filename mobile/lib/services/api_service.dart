@@ -186,6 +186,19 @@ class ApiService {
     throw _handleError(response, 'Failed to get weekly trends', url: url);
   }
 
+  static Future<Map<String, dynamic>> getAnalyticsCorrelations() async {
+    const url = '$baseUrl/analytics/correlations';
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse(url),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to fetch behavioral correlations', url: url);
+  }
+
   // ══════════════════════════════════════════════════
   // ── NEW PHASE 7: Fitbit API Integration ──
   // ══════════════════════════════════════════════════
@@ -224,6 +237,40 @@ class ApiService {
       if (json['success'] == true) return json['data'];
     }
     throw _handleError(response, 'Fitbit exchange failed');
+  }
+
+  // ==== Phase 5: Behavioral Automation ==== //
+  static Future<Map<String, dynamic>> syncDailyUsageStats(
+      double socialTime, double entertainmentTime, double productivityTime, double totalScreenTime) async {
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse('$baseUrl/analytics/sync-usage'),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        'social_time': socialTime,
+        'entertainment_time': entertainmentTime,
+        'productivity_time': productivityTime,
+        'screen_time': totalScreenTime
+      }),
+    ));
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json;
+    }
+    // We don't throw error if sync fails because it happens silently in background
+    return {'success': false};
+  }
+
+  // ==== Advanced Behavioral Intelligence ==== //
+  static Future<Map<String, dynamic>> getBehavioralIntelligence() async {
+    final response = await _safeRequest(() async => http.get(
+      Uri.parse('$baseUrl/analytics/behavioral-intelligence'),
+      headers: await _authHeaders(),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json['data'];
+    }
+    throw _handleError(response, 'Failed to fetch behavioral intelligence');
   }
 
   // ══════════════════════════════════════════════════

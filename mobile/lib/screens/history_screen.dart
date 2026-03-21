@@ -36,7 +36,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final trends = await ApiService.getAnalyticsWeeklyTrends();
+      final trends = await ApiService.getWeeklyTrends();
       if (mounted) {
         setState(() { _trends = trends; _loading = false; });
         _animController.forward(from: 0.0);

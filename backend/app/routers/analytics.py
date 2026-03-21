@@ -266,3 +266,64 @@ async def get_correlations(
     """Phase 3: Behavioral Correlation Engine — detects statistical links between behavior & mood/stress."""
     correlations_data = compute_correlations(db, current_user.user_id)
     return {"success": True, "data": CorrelationResponse(correlations=correlations_data)}
+
+from pydantic import BaseModel
+
+class UsageCategorySync(BaseModel):
+    social_time: float
+    entertainment_time: float
+    productivity_time: float
+    screen_time: float
+
+@router.post("/sync-usage")
+async def sync_usage(
+    payload: UsageCategorySync,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Phase 5: Silent Behavioral Automation. Receives aggregated category app usage."""
+    today = date.today()
+    log = db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id,
+        BehaviorLog.date == today
+    ).first()
+    
+    if log:
+        log.social_time = payload.social_time
+        log.entertainment_time = payload.entertainment_time
+        log.productivity_time = payload.productivity_time
+        # We also override total screen time automatically
+        log.screen_time = payload.screen_time
+    else:
+        # Create tentative log (mood/sleep require manual input)
+        log = BehaviorLog(
+            user_id=current_user.user_id,
+            date=today,
+            sleep_hours=0.0,
+            screen_time=payload.screen_time,
+            mood=5, # neutral default until user logs
+            exercise=False,
+            social_time=payload.social_time,
+            entertainment_time=payload.entertainment_time,
+            productivity_time=payload.productivity_time
+        )
+        db.add(log)
+    db.commit()
+    
+    # Invalidate cache
+    if current_user.user_id in summary_cache: del summary_cache[current_user.user_id]
+    if current_user.user_id in trends_cache: del trends_cache[current_user.user_id]
+    
+    return {"success": True, "message": "Usage stats synced securely"}
+
+from app.services.behavioral_intelligence import compute_full_intelligence
+
+@router.get("/behavioral-intelligence")
+async def get_behavioral_intelligence(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Advanced Behavioral Intelligence — returns risk scores, enhanced correlations,
+    emerging patterns, drift alerts, interventions, and weekly summary."""
+    result = compute_full_intelligence(db, current_user.user_id)
+    return {"success": True, "data": result}

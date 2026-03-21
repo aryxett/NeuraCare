@@ -8,6 +8,7 @@ import 'life_patterns_screen.dart';
 import 'history_screen.dart';
 import 'therapy_chat_screen.dart';
 import '../services/api_service.dart';
+import '../services/usage_tracker_service.dart';
 import '../widgets/glass_container.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -26,6 +27,29 @@ class _HomeScreenState extends State<HomeScreen> {
   final _insightsKey = GlobalKey<InsightsScreenState>();
   final _historyKey = GlobalKey<HistoryScreenState>();
 
+  @override
+  void initState() {
+    super.initState();
+    _initUsageTracking();
+  }
+
+  Future<void> _initUsageTracking() async {
+    // Phase 5: Silent Behavioral Automation
+    try {
+      final usage = await UsageTrackerService.getDailyUsageCategories();
+      if (usage.isNotEmpty) {
+        await ApiService.syncDailyUsageStats(
+          usage['social_time'] ?? 0.0,
+          usage['entertainment_time'] ?? 0.0,
+          usage['productivity_time'] ?? 0.0,
+          usage['screen_time'] ?? 0.0,
+        );
+      }
+    } catch (_) {
+      // Fails silently, no UI interruption
+    }
+  }
+
   Future<void> _logout() async {
     await ApiService.clearToken();
     widget.onLogout();
@@ -35,8 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _dashboardKey.currentState?.refresh();
     _insightsKey.currentState?.refresh();
     _historyKey.currentState?.refresh();
-    // Intentionally omitting `setState(() => _currentIndex = 0);` 
-    // so the user can see their prediction result on the log screen without being redirected.
   }
 
   void _toggleSafeSpace(bool active) {
@@ -213,7 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   key: _dashboardKey, onStressUpdate: _toggleSafeSpace),
               const TherapyChatScreen(),
               LogEntryScreen(onSubmitted: _onDataSubmitted),
-              const LifePatternsScreen(),
+              InsightsScreen(key: _insightsKey),
               HistoryScreen(key: _historyKey),
             ],
           ),
@@ -228,7 +250,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderOpacity: 0.15,
                 child: BottomNavigationBar(
                   currentIndex: _currentIndex,
-                  onTap: (i) => setState(() => _currentIndex = i),
+                  onTap: (i) {
+                    setState(() => _currentIndex = i);
+                    if (i == 0) _dashboardKey.currentState?.refresh();
+                    if (i == 3) _insightsKey.currentState?.refresh();
+                    if (i == 4) _historyKey.currentState?.refresh();
+                  },
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   selectedItemColor: const Color(0xFF3B82F6),

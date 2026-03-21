@@ -114,6 +114,51 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 "confidence_level": conf
             })
 
+    # 4. Social Time vs Stress
+    social_stress: Dict[str, List[float]] = {"<1": [], "1-2": [], ">2": []}
+    for log in logs:
+        if log.date in stress_map and log.social_time is not None:
+            if log.social_time < 1: social_stress["<1"].append(stress_map[log.date])
+            elif log.social_time <= 2: social_stress["1-2"].append(stress_map[log.date])
+            else: social_stress[">2"].append(stress_map[log.date])
+
+    if social_stress[">2"]:
+        high_soc_avg = sum(social_stress[">2"]) / len(social_stress[">2"])
+        lower_soc = social_stress["<1"] + social_stress["1-2"]
+        if lower_soc:
+            lower_soc_avg = sum(lower_soc) / len(lower_soc)
+            if high_soc_avg > lower_soc_avg + 5:
+                num_samples = len(social_stress[">2"]) + len(lower_soc)
+                conf = "High" if num_samples >= 15 else "Moderate"
+                correlations.append({
+                    "title": "Social Media & Stress",
+                    "explanation": f"High social media usage (>2h) correlates with increased stress levels (avg {high_soc_avg:.0f}%) compared to lower usage (avg {lower_soc_avg:.0f}%).",
+                    "confidence_level": conf
+                })
+
+    # 5. Productivity vs Mood
+    prod_mood: Dict[str, List[float]] = {"<2": [], "2-5": [], ">5": []}
+    for log in logs:
+        # Avoid zeros showing as highly productive if missing logic defaults to 0
+        if log.productivity_time and log.productivity_time > 0:
+            if log.productivity_time < 2: prod_mood["<2"].append(log.mood)
+            elif log.productivity_time <= 5: prod_mood["2-5"].append(log.mood)
+            else: prod_mood[">5"].append(log.mood)
+            
+    if prod_mood[">5"]:
+        high_prod_avg = sum(prod_mood[">5"]) / len(prod_mood[">5"])
+        lower_prod = prod_mood["<2"] + prod_mood["2-5"]
+        if lower_prod:
+            lower_prod_avg = sum(lower_prod) / len(lower_prod)
+            if high_prod_avg > lower_prod_avg + 0.5:
+                num_samples = len(prod_mood[">5"]) + len(lower_prod)
+                conf = "High" if num_samples >= 15 else "Moderate"
+                correlations.append({
+                    "title": "Productivity & Mood",
+                    "explanation": f"Higher productivity time (>5h) shows a positive correlation with your mood (avg {high_prod_avg:.1f}/10) compared to less productive days (avg {lower_prod_avg:.1f}/10).",
+                    "confidence_level": conf
+                })
+
     # If no correlations were found despite having >5 points
     if not correlations:
         return [{

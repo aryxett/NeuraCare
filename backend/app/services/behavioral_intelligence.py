@@ -1,0 +1,484 @@
+"""
+Advanced Behavioral Intelligence Service
+
+Computes 7 intelligence features from existing Phase 1-3 data:
+  F1: Risk Scoring (Mental Stability, Burnout Risk, Focus Score)
+  F2: Enhanced Correlation Insights (human-readable with strength)
+  F3: Emerging Patterns (soft insights with >=3 points)
+  F4: Behavioral Drift Detection (recent vs overall, >20% threshold)
+  F5: Confidence & Data Strength (attached to every insight)
+  F6: Smart Interventions (only on strong signals)
+  F7: Weekly Summary (7-day narrative)
+
+Uses ONLY existing data: BehaviorLog, Prediction, correlation_engine output.
+"""
+
+from typing import List, Dict, Any
+from datetime import date, timedelta
+from sqlalchemy.orm import Session
+from app.models.behavior_log import BehaviorLog
+from app.models.prediction import Prediction
+from app.services.correlation_engine import compute_correlations
+
+
+def _data_strength(count: int) -> Dict[str, Any]:
+    """F5: Map data point count to confidence % and strength label."""
+    if count >= 8:
+        return {"confidence_pct": 85, "data_strength": "High"}
+    elif count >= 3:
+        return {"confidence_pct": 60, "data_strength": "Moderate"}
+    else:
+        return {"confidence_pct": 30, "data_strength": "Low"}
+
+
+def _safe_avg(values: list) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def compute_risk_scores(logs: List[BehaviorLog], preds: List[Any]) -> Dict[str, Any]:
+    """F1: Lightweight behavioral risk scoring from last 7 days."""
+    today = date.today()
+    week_ago = today - timedelta(days=7)
+    recent = [l for l in logs if l.date and l.date >= week_ago]
+
+    if not recent:
+        return {
+            "mental_stability": 50,
+            "burnout_risk": "Unknown",
+            "focus_score": 50,
+            "has_data": False
+        }
+
+    moods = [l.mood for l in recent]
+    sleeps = [l.sleep_hours for l in recent]
+    screens = [l.screen_time for l in recent]
+    exercises = [1 for l in recent if l.exercise]
+
+    avg_mood = _safe_avg(moods)
+    avg_sleep = _safe_avg(sleeps)
+    avg_screen = _safe_avg(screens)
+    exercise_ratio = len(exercises) / len(recent) if recent else 0
+
+    # Normalize to 0-100
+    mood_norm = min(avg_mood / 10.0 * 100, 100)
+    sleep_norm = min(avg_sleep / 9.0 * 100, 100)  # 9h = perfect
+    screen_inv = max(100 - (avg_screen / 12.0 * 100), 0)  # lower is better
+    exercise_bonus = exercise_ratio * 100
+
+    # Mental Stability (0-100)
+    mental_stability = int(
+        mood_norm * 0.4 + sleep_norm * 0.3 + screen_inv * 0.2 + exercise_bonus * 0.1
+    )
+    mental_stability = max(0, min(100, mental_stability))
+
+    # Focus Score (higher sleep + lower screen = better focus)
+    focus_score = int(sleep_norm * 0.5 + screen_inv * 0.5)
+    focus_score = max(0, min(100, focus_score))
+
+    # Burnout Risk
+    recent_stress = [p.stress_score for p in preds if p.prediction_date and p.prediction_date >= week_ago]
+    avg_stress = _safe_avg(recent_stress) if recent_stress else 50
+
+    if mental_stability < 35 or avg_stress > 70:
+        burnout_risk = "High"
+    elif mental_stability < 55 or avg_stress > 50:
+        burnout_risk = "Moderate"
+    else:
+        burnout_risk = "Low"
+
+    return {
+        "mental_stability": mental_stability,
+        "burnout_risk": burnout_risk,
+        "focus_score": focus_score,
+        "has_data": True
+    }
+
+
+def compute_enhanced_correlations(db: Session, user_id: int) -> List[Dict[str, Any]]:
+    """F2 + F5: Enhanced correlation insights with human-readable language and confidence."""
+    raw = compute_correlations(db, user_id)
+    enhanced = []
+
+    strength_map = {"High": "strong", "Moderate": "moderate", "Low": "slight", "None": "no clear"}
+
+    for c in raw:
+        title = c.get("title", "")
+        if title in ["Insufficient Data", "No Strong Correlations Yet"]:
+            continue
+
+        conf_level = c.get("confidence_level", "Low")
+        strength_word = strength_map.get(conf_level, "slight")
+
+        enhanced.append({
+            "title": c["title"],
+            "insight": c["explanation"],
+            "strength": strength_word,
+            "confidence_level": conf_level,
+            **_data_strength(15 if conf_level == "High" else 5 if conf_level == "Moderate" else 2)
+        })
+
+    return enhanced
+
+
+def compute_emerging_patterns(logs: List[BehaviorLog], preds: List[Any]) -> List[Dict[str, Any]]:
+    """F3: Soft early observations when 3-4 data points exist."""
+    if len(logs) < 3:
+        return []
+
+    patterns = []
+    stress_map = {p.prediction_date: p.stress_score for p in preds}
+
+    # Sleep vs Mood (soft)
+    low_sleep_moods = [l.mood for l in logs if l.sleep_hours < 6]
+    ok_sleep_moods = [l.mood for l in logs if l.sleep_hours >= 6]
+
+    if len(low_sleep_moods) >= 1 and len(ok_sleep_moods) >= 1:
+        avg_low = _safe_avg(low_sleep_moods)
+        avg_ok = _safe_avg(ok_sleep_moods)
+        if avg_low < avg_ok - 0.3:
+            patterns.append({
+                "title": "Sleep & Mood",
+                "insight": "We are starting to observe that lower sleep may be affecting your mood. More data will help confirm this.",
+                "type": "emerging",
+                **_data_strength(len(logs))
+            })
+
+    # Screen vs Stress (soft)
+    high_screen_stress = [stress_map[l.date] for l in logs if l.screen_time > 5 and l.date in stress_map]
+    low_screen_stress = [stress_map[l.date] for l in logs if l.screen_time <= 5 and l.date in stress_map]
+
+    if high_screen_stress and low_screen_stress:
+        avg_high = _safe_avg(high_screen_stress)
+        avg_low = _safe_avg(low_screen_stress)
+        if avg_high > avg_low + 3:
+            patterns.append({
+                "title": "Screen Time & Stress",
+                "insight": "There may be a slight relationship between higher screen time and increased stress levels.",
+                "type": "emerging",
+                **_data_strength(len(logs))
+            })
+
+    # Exercise vs Mood (soft)
+    ex_moods = [l.mood for l in logs if l.exercise]
+    no_ex_moods = [l.mood for l in logs if not l.exercise]
+    if ex_moods and no_ex_moods:
+        if _safe_avg(ex_moods) > _safe_avg(no_ex_moods) + 0.3:
+            patterns.append({
+                "title": "Activity & Mood",
+                "insight": "Early data suggests that physical activity days tend to correlate with slightly better mood.",
+                "type": "emerging",
+                **_data_strength(len(logs))
+            })
+
+    return patterns
+
+
+def compute_behavioral_drift(logs: List[BehaviorLog]) -> List[Dict[str, Any]]:
+    """F4: Compare recent 3-5 days vs overall average. Trigger if >20% change."""
+    if len(logs) < 5:
+        return []
+
+    sorted_logs = sorted(logs, key=lambda l: l.date if l.date else date.min)
+    recent = sorted_logs[-3:]  # last 3 days
+    older = sorted_logs[:-3]   # everything before
+
+    if not older:
+        return []
+
+    drifts = []
+
+    # Sleep drift
+    recent_sleep = _safe_avg([l.sleep_hours for l in recent])
+    overall_sleep = _safe_avg([l.sleep_hours for l in older])
+    if overall_sleep > 0:
+        sleep_change = (recent_sleep - overall_sleep) / overall_sleep
+        if abs(sleep_change) > 0.20:
+            direction = "decreased" if sleep_change < 0 else "increased"
+            pct = abs(int(sleep_change * 100))
+            drifts.append({
+                "metric": "Sleep",
+                "insight": f"Your sleep has {direction} by {pct}% compared to your recent average.",
+                "change_pct": int(sleep_change * 100),
+                "direction": "down" if sleep_change < 0 else "up",
+                **_data_strength(len(logs))
+            })
+
+    # Screen time drift
+    recent_screen = _safe_avg([l.screen_time for l in recent])
+    overall_screen = _safe_avg([l.screen_time for l in older])
+    if overall_screen > 0:
+        screen_change = (recent_screen - overall_screen) / overall_screen
+        if abs(screen_change) > 0.20:
+            direction = "increased" if screen_change > 0 else "decreased"
+            pct = abs(int(screen_change * 100))
+            drifts.append({
+                "metric": "Screen Time",
+                "insight": f"Your screen time has {direction} by {pct}% compared to your recent average.",
+                "change_pct": int(screen_change * 100),
+                "direction": "up" if screen_change > 0 else "down",
+                **_data_strength(len(logs))
+            })
+
+    # Mood drift
+    recent_mood = _safe_avg([l.mood for l in recent])
+    overall_mood = _safe_avg([l.mood for l in older])
+    if overall_mood > 0:
+        mood_change = (recent_mood - overall_mood) / overall_mood
+        if abs(mood_change) > 0.20:
+            direction = "dropped" if mood_change < 0 else "improved"
+            pct = abs(int(mood_change * 100))
+            drifts.append({
+                "metric": "Mood",
+                "insight": f"Your mood has {direction} by {pct}% compared to your recent average.",
+                "change_pct": int(mood_change * 100),
+                "direction": "down" if mood_change < 0 else "up",
+                **_data_strength(len(logs))
+            })
+
+    return drifts
+
+
+def compute_smart_interventions(risk_scores: Dict, drifts: List[Dict]) -> List[Dict[str, Any]]:
+    """F6: Trigger suggestions only on strong signals."""
+    interventions = []
+
+    if risk_scores.get("burnout_risk") == "High":
+        interventions.append({
+            "priority": "high",
+            "suggestion": "Your burnout risk is elevated. Consider taking a break from screens and prioritizing sleep tonight.",
+            **_data_strength(10)
+        })
+
+    if risk_scores.get("focus_score", 100) < 40:
+        interventions.append({
+            "priority": "moderate",
+            "suggestion": "Your focus score is low. Try reducing screen time and getting at least 7 hours of sleep.",
+            **_data_strength(10)
+        })
+
+    for drift in drifts:
+        if drift.get("metric") == "Screen Time" and drift.get("direction") == "up":
+            interventions.append({
+                "priority": "moderate",
+                "suggestion": "Your screen time is higher than usual. Consider taking regular breaks.",
+                **_data_strength(8)
+            })
+            break
+
+    for drift in drifts:
+        if drift.get("metric") == "Sleep" and drift.get("direction") == "down":
+            interventions.append({
+                "priority": "moderate",
+                "suggestion": "Your sleep has been declining recently. Try setting a consistent bedtime.",
+                **_data_strength(8)
+            })
+            break
+
+    return interventions
+
+
+def compute_weekly_summary(logs: List[BehaviorLog]) -> Dict[str, Any]:
+    """F7: 7-day summary narrative."""
+    today = date.today()
+    week_ago = today - timedelta(days=7)
+    recent = [l for l in logs if l.date and l.date >= week_ago]
+
+    if not recent:
+        return {"summary": "Not enough data to generate a weekly summary yet.", "has_data": False}
+
+    avg_mood = _safe_avg([l.mood for l in recent])
+    avg_sleep = _safe_avg([l.sleep_hours for l in recent])
+    avg_screen = _safe_avg([l.screen_time for l in recent])
+    exercise_days = sum(1 for l in recent if l.exercise)
+    total_days = len(recent)
+
+    # Determine trends
+    sorted_recent = sorted(recent, key=lambda l: l.date)
+    moods = [l.mood for l in sorted_recent]
+    sleeps = [l.sleep_hours for l in sorted_recent]
+    screens = [l.screen_time for l in sorted_recent]
+
+    def trend_word(values):
+        if len(values) < 2:
+            return "stable"
+        first_half = _safe_avg(values[:len(values)//2])
+        second_half = _safe_avg(values[len(values)//2:])
+        diff = second_half - first_half
+        if abs(diff) < 0.3:
+            return "stable"
+        return "improving" if diff > 0 else "declining"
+
+    mood_trend = trend_word(moods)
+    sleep_trend = trend_word(sleeps)
+    screen_trend = trend_word(screens)
+
+    # Build summary sentence
+    parts = []
+    parts.append(f"Over the past {total_days} days, your mood has been {mood_trend} (avg {avg_mood:.1f}/10)")
+
+    if sleep_trend == "declining":
+        parts.append(f"sleep is declining (avg {avg_sleep:.1f}h)")
+    elif sleep_trend == "improving":
+        parts.append(f"sleep is improving (avg {avg_sleep:.1f}h)")
+    else:
+        parts.append(f"sleep has remained steady (avg {avg_sleep:.1f}h)")
+
+    if screen_trend == "improving":
+        # For screen, "improving" means increasing which is bad
+        parts.append(f"and screen time is increasing (avg {avg_screen:.1f}h)")
+    elif screen_trend == "declining":
+        parts.append(f"and screen time is decreasing (avg {avg_screen:.1f}h)")
+    else:
+        parts.append(f"and screen time is stable (avg {avg_screen:.1f}h)")
+
+    if exercise_days > 0:
+        parts.append(f"You exercised on {exercise_days} out of {total_days} days.")
+
+    summary = ", ".join(parts[:3]) + ". " + (parts[3] if len(parts) > 3 else "")
+
+    return {
+        "summary": summary.strip(),
+        "avg_mood": round(avg_mood, 1),
+        "avg_sleep": round(avg_sleep, 1),
+        "avg_screen": round(avg_screen, 1),
+        "exercise_days": exercise_days,
+        "total_days": total_days,
+        "mood_trend": mood_trend,
+        "sleep_trend": sleep_trend,
+        "screen_trend": screen_trend,
+        "has_data": True,
+        **_data_strength(total_days)
+    }
+
+
+def compute_stress_forecast(logs: List[BehaviorLog]) -> Dict[str, Any]:
+    """Phase 5: Cognitive Stress Simulator. Predicts tomorrow's stress level based on recent trends."""
+    if len(logs) < 5:
+        return {
+            "has_data": False,
+            "message": "Collecting enough data (min 5 days) to generate accurate stress predictions."
+        }
+        
+    sorted_logs = sorted(logs, key=lambda l: l.date if l.date else date.min)
+    recent = sorted_logs[-5:]  # Use last 5 logs for the recent window
+    
+    # Step 1: Identify Recent Behavior Window
+    recent_sleep = _safe_avg([l.sleep_hours for l in recent])
+    recent_screen = _safe_avg([l.screen_time for l in recent])
+    recent_mood = _safe_avg([l.mood for l in recent])
+    
+    # Step 2 & 3: Apply Weighted Influence Model (Sleep 40%, Screen 30%, Mood 30%)
+    # Normalize risks to 0-100 (where 100 = max stress contribution)
+    # Sleep: optimal is 8h. For every hour missed, risk goes up by 25.
+    sleep_risk = max(0, min(100, (8.0 - recent_sleep) * 25))
+    
+    # Screen time: optimal is 2h. For every hour added, risk goes up by 16.6.
+    screen_risk = max(0, min(100, (recent_screen - 2.0) * 16.6))
+    
+    # Mood: optimal is 10. For every point missing, risk goes up by 16.6.
+    mood_risk = max(0, min(100, (10.0 - recent_mood) * 16.6))
+    
+    # Step 4: Generate Stress Prediction Score
+    predicted_score = int((sleep_risk * 0.40) + (screen_risk * 0.30) + (mood_risk * 0.30))
+    predicted_score = max(0, min(100, predicted_score))
+    
+    if predicted_score <= 30:
+        risk_level = "Low"
+    elif predicted_score <= 70:
+        risk_level = "Moderate"
+    else:
+        risk_level = "High"
+        
+    # Step 5: Confidence Calculation
+    total_days = len(logs)
+    if total_days >= 10:
+        confidence = "High"
+        conf_pct = 85
+    elif total_days >= 6:
+        confidence = "Moderate"
+        conf_pct = 65
+    else:
+        confidence = "Low"
+        conf_pct = 40
+        
+    # Step 6: Generate Natural Language Insights
+    insights = []
+    if sleep_risk > 50:
+        insights.append("Your recent sleep deficit is likely to increase stress.")
+    elif sleep_risk < 20:
+        insights.append("Improved sleep patterns suggest a potential reduction in stress tomorrow.")
+        
+    if screen_risk > 50:
+        insights.append("Screen time trends show rising cognitive load.")
+    elif screen_risk < 20:
+        insights.append("Lower screen time is contributing to a lower predicted stress level.")
+        
+    if mood_risk > 50:
+        insights.append("Declining mood trends indicate higher emotional vulnerability to stress.")
+        
+    if not insights:
+        insights.append("Your balanced behavioral trends suggest stable and optimal stress levels tomorrow.")
+        
+    # Step 7: Scenario-Based Simulation (What If)
+    what_if = ""
+    # Choose the most impactful negative behavior to simulate
+    if sleep_risk >= screen_risk and recent_sleep < 7.5:
+        improved_sleep_risk = max(0, min(100, (8.0 - 7.5) * 25))
+        improved_score = int((improved_sleep_risk * 0.40) + (screen_risk * 0.30) + (mood_risk * 0.30))
+        what_if = f"Improving sleep to 7.5 hours may reduce your future stress to {improved_score}%."
+    elif recent_screen > 3.0:
+        improved_screen_risk = max(0, min(100, (3.0 - 2.0) * 16.6))
+        improved_score = int((sleep_risk * 0.40) + (improved_screen_risk * 0.30) + (mood_risk * 0.30))
+        what_if = f"Reducing screen time to 3 hours may drop your future stress to {improved_score}%."
+    else:
+        what_if = "Maintaining your current habits will likely keep stress consistently low."
+
+    return {
+        "has_data": True,
+        "predicted_score": predicted_score,
+        "risk_level": risk_level,
+        "confidence": confidence,
+        "confidence_pct": conf_pct if 'conf_pct' in locals() else 0,
+        "insights": insights[:3],
+        "what_if": what_if
+    }
+
+
+def compute_full_intelligence(db: Session, user_id: int) -> Dict[str, Any]:
+    """Master function: computes all 7 features in one pass."""
+    logs = db.query(BehaviorLog).filter(BehaviorLog.user_id == user_id).all()
+    preds = db.query(Prediction).filter(Prediction.user_id == user_id).all()
+
+    data_points = len(logs)
+
+    # F1: Risk Scores
+    risk_scores = compute_risk_scores(logs, preds)
+
+    # F2 + F5: Enhanced Correlations (only if >= 5 data points)
+    enhanced_correlations = compute_enhanced_correlations(db, user_id) if data_points >= 5 else []
+
+    # F3: Emerging Patterns (3-4 data points, or as supplement)
+    emerging_patterns = compute_emerging_patterns(logs, preds) if data_points >= 3 else []
+
+    # F4: Behavioral Drift (>= 5 data points)
+    drifts = compute_behavioral_drift(logs) if data_points >= 5 else []
+
+    # F6: Smart Interventions
+    interventions = compute_smart_interventions(risk_scores, drifts)
+
+    # F7: Weekly Summary
+    weekly_summary = compute_weekly_summary(logs)
+
+    # Phase 5: Cognitive Stress Simulator
+    stress_forecast = compute_stress_forecast(logs)
+
+    return {
+        "data_points": data_points,
+        "risk_scores": risk_scores,
+        "enhanced_correlations": enhanced_correlations,
+        "emerging_patterns": emerging_patterns,
+        "behavioral_drifts": drifts,
+        "smart_interventions": interventions,
+        "weekly_summary": weekly_summary,
+        "stress_forecast": stress_forecast
+    }
