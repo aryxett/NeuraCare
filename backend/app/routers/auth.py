@@ -37,7 +37,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    return {"success": True, "data": new_user}
+    return {"success": True, "data": UserResponse.from_user(new_user).model_dump()}
 
 
 @router.post("/login", response_model=StandardizedResponse[Token])
