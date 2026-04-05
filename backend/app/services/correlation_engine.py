@@ -61,7 +61,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 conf = "High" if num_samples >= 15 else "Moderate"
                 correlations.append({
                     "title": "Sleep & Mood",
-                    "explanation": f"Lower sleep duration (<6h) is associated with reduced mood levels (avg {low_sleep_avg:.1f}/10) compared to adequate sleep (avg {good_sleep_avg:.1f}/10).",
+                    "explanation": f"Lower sleep (<6h) correlates with reduced mood (avg {low_sleep_avg:.1f}/10 vs {good_sleep_avg:.1f}/10).",
                     "confidence_level": conf
                 })
             elif low_sleep_avg > good_sleep_avg + 0.5:
@@ -70,7 +70,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 conf = "Moderate" if num_samples >= 10 else "Low"
                 correlations.append({
                     "title": "Sleep & Mood Profile",
-                    "explanation": f"Interestingly, your mood averages higher ({low_sleep_avg:.1f}/10) on days with less sleep compared to days you sleep more.",
+                    "explanation": f"Paradoxically, mood averages higher ({low_sleep_avg:.1f}/10) on low sleep days.",
                     "confidence_level": conf
                 })
 
@@ -93,7 +93,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 conf = "High" if num_samples >= 15 else "Moderate"
                 correlations.append({
                     "title": "Screen Time & Stress",
-                    "explanation": f"High screen time (>6h) correlates with increased stress levels (avg {high_screen_avg:.0f}%) compared to lower screen times (avg {lower_screen_avg:.0f}%).",
+                    "explanation": f"High screen time (>6h) correlates with higher stress ({high_screen_avg:.0f}% vs {lower_screen_avg:.0f}%).",
                     "confidence_level": conf
                 })
 
@@ -110,7 +110,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
             conf = "High" if num_samples >= 15 else "Moderate"
             correlations.append({
                 "title": "Activity & Mood",
-                "explanation": f"Physical activity is associated with a noticeable mood boost (avg {avg_act:.1f}/10 vs {avg_no_act:.1f}/10 on inactive days).",
+                "explanation": f"Activity boosts your mood (avg {avg_act:.1f}/10 vs {avg_no_act:.1f}/10).",
                 "confidence_level": conf
             })
 
@@ -132,7 +132,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 conf = "High" if num_samples >= 15 else "Moderate"
                 correlations.append({
                     "title": "Social Media & Stress",
-                    "explanation": f"High social media usage (>2h) correlates with increased stress levels (avg {high_soc_avg:.0f}%) compared to lower usage (avg {lower_soc_avg:.0f}%).",
+                    "explanation": f"Social media (>2h) correlates with higher stress ({high_soc_avg:.0f}% vs {lower_soc_avg:.0f}%).",
                     "confidence_level": conf
                 })
 
@@ -155,7 +155,7 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
                 conf = "High" if num_samples >= 15 else "Moderate"
                 correlations.append({
                     "title": "Productivity & Mood",
-                    "explanation": f"Higher productivity time (>5h) shows a positive correlation with your mood (avg {high_prod_avg:.1f}/10) compared to less productive days (avg {lower_prod_avg:.1f}/10).",
+                    "explanation": f"Productivity (>5h) correlates with higher mood (avg {high_prod_avg:.1f}/10 vs {lower_prod_avg:.1f}/10).",
                     "confidence_level": conf
                 })
 

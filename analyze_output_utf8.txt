@@ -1,0 +1,5 @@
+﻿Analyzing Cognify AI...                                         
+
+  error - Undefined name '_radarData' - mobile\lib\screens\insights_screen.dart:70:11 - undefined_identifier
+   info - Use 'const' with the constructor to improve performance - mobile\lib\screens\profile\edit_emergency_contact_screen.dart:118:27 - prefer_const_constructors
+

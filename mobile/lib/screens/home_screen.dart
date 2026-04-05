@@ -5,7 +5,6 @@ import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
 import 'log_entry_screen.dart';
 import 'insights_screen.dart';
-import 'life_patterns_screen.dart';
 import 'history_screen.dart';
 import 'therapy_chat_screen.dart';
 import 'profile_screen.dart';
@@ -23,7 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  bool _safeSpaceMode = false;
+  final bool _safeSpaceMode = false;
   String _userName = '';
   String? _avatarBase64;
 
@@ -172,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: (_safeSpaceMode
                                     ? const Color(0xFF10B981)
                                     : const Color(0xFF3B82F6))
-                                .withOpacity(0.3),
+                                .withValues(alpha: 0.3),
                             blurRadius: 8,
                             spreadRadius: 1),
                       ]),
@@ -232,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF3B82F6).withOpacity(0.3),
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                         blurRadius: 8,
                         spreadRadius: 1,
                       ),
@@ -287,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   backgroundColor: Colors.transparent,
                   elevation: 0,
                   selectedItemColor: const Color(0xFF3B82F6),
-                  unselectedItemColor: isDark ? Colors.white.withOpacity(0.4) : const Color(0xFF6B7280).withOpacity(0.8),
+                  unselectedItemColor: isDark ? Colors.white.withValues(alpha: 0.4) : const Color(0xFF6B7280).withValues(alpha: 0.8),
                   showSelectedLabels: true,
                   showUnselectedLabels: false,
                   type: BottomNavigationBarType.fixed,

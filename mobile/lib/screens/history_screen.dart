@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-import '../widgets/glass_container.dart';
+import '../core/app_theme.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -10,7 +11,9 @@ class HistoryScreen extends StatefulWidget {
   HistoryScreenState createState() => HistoryScreenState();
 }
 
-class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderStateMixin {
+class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   Map<String, dynamic>? _trends;
   bool _loading = true;
 
@@ -46,41 +49,29 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     }
   }
 
+  // ══════════════════════════════════════════════════════
+  //  BUILD
+  // ══════════════════════════════════════════════════════
+
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6)));
-    
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = isDark ? Colors.white : const Color(0xFF1F2937);
-    final secondaryTextColor = isDark ? Colors.white.withOpacity(0.7) : const Color(0xFF4B5563);
+    super.build(context);
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2));
+    }
 
     final sleep = (_trends?['sleep'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
     final mood = (_trends?['mood'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
     final screenTime = (_trends?['screen_time'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
 
     if (sleep.isEmpty) {
-      return Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.bar_chart_rounded, size: 48, color: secondaryTextColor),
-              const SizedBox(height: 16),
-              Text('No History Yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
-              const SizedBox(height: 8),
-              Text('Start logging daily data to see your wellness trends over time.',
-                style: TextStyle(color: secondaryTextColor), textAlign: TextAlign.center),
-            ],
-          ),
-        ),
-      );
+      return _buildEmptyState();
     }
 
     return RefreshIndicator(
       onRefresh: () async => _load(),
-      color: const Color(0xFF3B82F6),
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      color: AppTheme.accentBlue,
+      backgroundColor: AppTheme.bgPrimary,
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
         physics: const AlwaysScrollableScrollPhysics(),
@@ -89,16 +80,40 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('History', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryTextColor.withOpacity(0.9))),
+              // ── Header ──
+              Text('History', style: AppTheme.headingLarge),
               const SizedBox(height: 4),
-              Text('Your weekly cognitive patterns', style: TextStyle(color: secondaryTextColor, fontSize: 13, letterSpacing: 0.5)),
-              const SizedBox(height: 32),
+              Text('Your weekly cognitive patterns', style: AppTheme.labelText),
+              const SizedBox(height: 28),
 
-              _buildChartCard('Sleep Duration', Icons.bedtime_rounded, _buildBarChart(sleep, const Color(0xFF3B82F6), isDark), 0, const Color(0xFF3B82F6), primaryTextColor),
-              const SizedBox(height: 16),
-              _buildChartCard('Mood Fluctuation', Icons.sentiment_satisfied_rounded, _buildLineChart(mood, const Color(0xFF8B5CF6), isDark), 1, const Color(0xFF8B5CF6), primaryTextColor),
-              const SizedBox(height: 16),
-              _buildChartCard('Screen Time', Icons.smartphone_rounded, _buildLineChart(screenTime, const Color(0xFFEC4899), isDark), 2, const Color(0xFFEC4899), primaryTextColor),
+              // ── Sleep BarChart ──
+              _buildChartCard(
+                title: 'Sleep Duration',
+                icon: Icons.nightlight_round,
+                iconColor: AppTheme.accentBlue,
+                chart: _buildSleepBarChart(sleep),
+                index: 0,
+              ),
+              const SizedBox(height: 14),
+
+              // ── Mood LineChart ──
+              _buildChartCard(
+                title: 'Mood Fluctuation',
+                icon: Icons.sentiment_satisfied_rounded,
+                iconColor: AppTheme.accentPurple,
+                chart: _buildMoodLineChart(mood),
+                index: 1,
+              ),
+              const SizedBox(height: 14),
+
+              // ── Screen Time LineChart ──
+              _buildChartCard(
+                title: 'Screen Time',
+                icon: Icons.phone_android_rounded,
+                iconColor: const Color(0xFFE040FB),
+                chart: _buildScreenTimeLineChart(screenTime),
+                index: 2,
+              ),
             ],
           ),
         ),
@@ -106,34 +121,75 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     );
   }
 
-  Widget _buildChartCard(String title, IconData icon, Widget chart, int index, Color color, Color primaryTextColor) {
+  // ──────────────────────────────────────────────────────
+  //  UI HELPERS
+  // ──────────────────────────────────────────────────────
+
+  static const _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bar_chart_rounded, size: 48, color: AppTheme.textMuted.withValues(alpha: 0.4)),
+            const SizedBox(height: 16),
+            Text('No History Yet', style: AppTheme.headingMedium),
+            const SizedBox(height: 8),
+            Text(
+              'Start logging daily data to see your\nwellness trends over time.',
+              style: AppTheme.mutedText,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChartCard({
+    required String title,
+    required IconData icon,
+    required Color iconColor,
+    required Widget chart,
+    required int index,
+  }) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: Duration(milliseconds: 600 + (index * 200)),
       curve: Curves.easeOutCubic,
       builder: (context, value, child) {
         return Transform.translate(
-          offset: Offset(0, 30 * (1 - value)),
+          offset: Offset(0, 24 * (1 - value)),
           child: Opacity(
             opacity: value,
-            child: GlassContainer(
-              padding: const EdgeInsets.all(20),
-              borderOpacity: 0.15,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.bgCard,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                        child: Icon(icon, color: color, size: 16),
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: iconColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(icon, color: iconColor, size: 16),
                       ),
-                      const SizedBox(width: 12),
-                      Text(title, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: primaryTextColor)),
+                      const SizedBox(width: 10),
+                      Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   SizedBox(height: 180, child: chart),
                 ],
               ),
@@ -144,29 +200,62 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     );
   }
 
-  Widget _buildBarChart(List<double> data, Color color, bool isDark) {
+  // ── Sleep Bar Chart ──
+  Widget _buildSleepBarChart(List<double> data) {
+    if (data.isEmpty) {
+      return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
+    }
+
     return BarChart(
       BarChartData(
-        gridData: FlGridData(show: false),
+        maxY: 12,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 3,
+          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+        ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
-          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: 3,
+              getTitlesWidget: (value, meta) => Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+              ),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                );
+              },
+            ),
+          ),
         ),
         barGroups: data.asMap().entries.map((e) {
           return BarChartGroupData(x: e.key, barRods: [
             BarChartRodData(
-              toY: e.value, width: 14,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
-              gradient: LinearGradient(
-                begin: Alignment.bottomCenter, end: Alignment.topCenter,
-                colors: [color.withOpacity(0.4), color],
-              ),
+              toY: e.value,
+              width: 14,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              color: AppTheme.accentBlue,
               backDrawRodData: BackgroundBarChartRodData(
-                show: true, toY: 12,
-                color: isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.02),
+                show: true,
+                toY: 12,
+                color: AppTheme.bgElevated,
               ),
             ),
           ]);
@@ -175,31 +264,139 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     );
   }
 
-  Widget _buildLineChart(List<double> data, Color color, bool isDark) {
+  // ── Mood Line Chart ──
+  Widget _buildMoodLineChart(List<double> data) {
+    if (data.isEmpty) {
+      return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
+    }
+
     return LineChart(
       LineChartData(
-        gridData: FlGridData(show: false),
+        minY: 0,
+        maxY: 10,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 2,
+          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+        ),
         borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              interval: 2,
+              getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                );
+              },
+            ),
+          ),
+        ),
         lineBarsData: [
           LineChartBarData(
             spots: data.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
             isCurved: true,
-            color: color,
-            barWidth: 3,
+            color: AppTheme.accentPurple,
+            barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: FlDotData(
               show: true,
               getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
-                radius: 4, color: color, strokeColor: isDark ? const Color(0xFF0B1220) : Colors.white, strokeWidth: 2,
+                radius: 4,
+                color: AppTheme.accentPurple,
+                strokeColor: AppTheme.bgCard,
+                strokeWidth: 2,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [color.withOpacity(0.2), Colors.transparent],
+              color: AppTheme.accentPurple.withValues(alpha: 0.08),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Screen Time Line Chart ──
+  Widget _buildScreenTimeLineChart(List<double> data) {
+    if (data.isEmpty) {
+      return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
+    }
+
+    return LineChart(
+      LineChartData(
+        minY: 0,
+        maxY: 16,
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: 4,
+          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+        ),
+        borderData: FlBorderData(show: false),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              interval: 4,
+              getTitlesWidget: (value, meta) => Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+            ),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 24,
+              interval: 1,
+              getTitlesWidget: (value, meta) {
+                final i = value.toInt();
+                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                );
+              },
+            ),
+          ),
+        ),
+        lineBarsData: [
+          LineChartBarData(
+            spots: data.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+            isCurved: true,
+            color: const Color(0xFFE040FB),
+            barWidth: 2.5,
+            isStrokeCapRound: true,
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
+                radius: 4,
+                color: const Color(0xFFE040FB),
+                strokeColor: AppTheme.bgCard,
+                strokeWidth: 2,
               ),
+            ),
+            belowBarData: BarAreaData(
+              show: true,
+              color: const Color(0xFFE040FB).withValues(alpha: 0.08),
             ),
           ),
         ],

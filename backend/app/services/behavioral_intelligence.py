@@ -138,7 +138,7 @@ def compute_emerging_patterns(logs: List[BehaviorLog], preds: List[Any]) -> List
         if avg_low < avg_ok - 0.3:
             patterns.append({
                 "title": "Sleep & Mood",
-                "insight": "We are starting to observe that lower sleep may be affecting your mood. More data will help confirm this.",
+                "insight": "Lower sleep may be affecting your mood.",
                 "type": "emerging",
                 **_data_strength(len(logs))
             })
@@ -153,7 +153,7 @@ def compute_emerging_patterns(logs: List[BehaviorLog], preds: List[Any]) -> List
         if avg_high > avg_low + 3:
             patterns.append({
                 "title": "Screen Time & Stress",
-                "insight": "There may be a slight relationship between higher screen time and increased stress levels.",
+                "insight": "Higher screen time may slightly increase stress.",
                 "type": "emerging",
                 **_data_strength(len(logs))
             })
@@ -165,7 +165,7 @@ def compute_emerging_patterns(logs: List[BehaviorLog], preds: List[Any]) -> List
         if _safe_avg(ex_moods) > _safe_avg(no_ex_moods) + 0.3:
             patterns.append({
                 "title": "Activity & Mood",
-                "insight": "Early data suggests that physical activity days tend to correlate with slightly better mood.",
+                "insight": "Active days tend to correlate with slightly better mood.",
                 "type": "emerging",
                 **_data_strength(len(logs))
             })

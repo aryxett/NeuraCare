@@ -30,17 +30,17 @@ class GlassContainer extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final fallbackColor = isDark
-        ? Colors.white.withOpacity(0.04)
-        : Colors.white.withOpacity(0.9); // Clean white pane for light mode
+        ? Colors.white.withValues(alpha: 0.04)
+        : Colors.white.withValues(alpha: 0.9); // Clean white pane for light mode
 
     final fallbackBorderColor = isDark
-        ? Colors.white.withOpacity(borderOpacity)
-        : Colors.black.withOpacity(0.05); // Subtle shadow border
+        ? Colors.white.withValues(alpha: borderOpacity)
+        : Colors.black.withValues(alpha: 0.05); // Subtle shadow border
 
     // If baseColor is explicitly passed and is not the default white, use it with opacity
     Color finalContainerColor;
     if (baseColor != Colors.white) {
-      finalContainerColor = baseColor.withOpacity(isDark ? 0.1 : 0.8);
+      finalContainerColor = baseColor.withValues(alpha: isDark ? 0.1 : 0.8);
     } else {
       finalContainerColor = Theme.of(context).cardTheme.color ?? fallbackColor;
     }
@@ -74,7 +74,7 @@ class GlassContainer extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: Colors.black
-                      .withOpacity(0.05), // softer shadow for both modes
+                      .withValues(alpha: 0.05), // softer shadow for both modes
                   blurRadius: 10,
                   spreadRadius: 1,
                   offset: const Offset(0, 4),

@@ -53,10 +53,10 @@ class ThemeProvider extends ChangeNotifier {
         centerTitle: true,
       ),
       cardTheme: CardThemeData(
-        color: Colors.white.withOpacity(0.9), // Clean frosted glass base
+        color: Colors.white.withValues(alpha: 0.9), // Clean frosted glass base
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.black.withOpacity(0.05)),
+          side: BorderSide(color: Colors.black.withValues(alpha: 0.05)),
         ),
         elevation: 0,
       ),
@@ -90,7 +90,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme.apply(
-              bodyColor: Colors.white.withOpacity(0.9),
+              bodyColor: Colors.white.withValues(alpha: 0.9),
               displayColor: Colors.white,
             ),
       ),
@@ -104,7 +104,7 @@ class ThemeProvider extends ChangeNotifier {
         color: Colors.transparent, // Handled by GlassContainer
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         elevation: 0,
       ),
@@ -128,14 +128,14 @@ class ThemeProvider extends ChangeNotifier {
     return ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         // Soft gradient effect when built, but solid fallback here
-        backgroundColor: const Color(0xFF1E3A8A).withOpacity(0.8),
+        backgroundColor: const Color(0xFF1E3A8A).withValues(alpha: 0.8),
         foregroundColor: Colors.white,
-        shadowColor: const Color(0xFF3B82F6).withOpacity(0.2),
+        shadowColor: const Color(0xFF3B82F6).withValues(alpha: 0.2),
         elevation: 10,
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         textStyle: const TextStyle(
             fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
@@ -144,11 +144,11 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   static InputDecorationTheme get _inputDecorationTheme {
-    final borderColor = Colors.white.withOpacity(0.1);
+    final borderColor = Colors.white.withValues(alpha: 0.1);
 
     return InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white.withOpacity(0.03),
+      fillColor: Colors.white.withValues(alpha: 0.03),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: borderColor),
@@ -162,7 +162,7 @@ class ThemeProvider extends ChangeNotifier {
         borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),
     );
   }
 }
