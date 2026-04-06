@@ -50,8 +50,53 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   }
 
   // ══════════════════════════════════════════════════════
-  //  BUILD
-  // ══════════════════════════════════════════════════════
+  /// Build arrays for the last 7 calendar days (today-6 → today).
+  /// Returns { 'labels': [...], 'sleep': [...], 'mood': [...], 'screen': [...] }
+  Map<String, dynamic> _buildLast7Days(Map<String, dynamic> trends) {
+    final now = DateTime.now();
+    final labels = <String>[];
+    final sleepArr = <double>[];
+    final moodArr = <double>[];
+    final screenArr = <double>[];
+
+    const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    // Build a lookup from date-string → index in raw arrays
+    final rawDates = (trends['dates'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final rawSleep = (trends['sleep'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+    final rawMood = (trends['mood'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+    final rawScreen = (trends['screen_time'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+
+    final dateMap = <String, int>{};
+    for (int i = 0; i < rawDates.length; i++) {
+      dateMap[rawDates[i]] = i;
+    }
+
+    // For each of the last 7 days
+    for (int d = 6; d >= 0; d--) {
+      final day = now.subtract(Duration(days: d));
+      final key = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      labels.add(weekDays[day.weekday - 1]);
+
+      if (dateMap.containsKey(key)) {
+        final idx = dateMap[key]!;
+        sleepArr.add(idx < rawSleep.length ? rawSleep[idx] : 0);
+        moodArr.add(idx < rawMood.length ? rawMood[idx] : 0);
+        screenArr.add(idx < rawScreen.length ? rawScreen[idx] : 0);
+      } else {
+        sleepArr.add(0);
+        moodArr.add(0);
+        screenArr.add(0);
+      }
+    }
+
+    return {
+      'labels': labels,
+      'sleep': sleepArr,
+      'mood': moodArr,
+      'screen': screenArr,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +105,17 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
       return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2));
     }
 
-    final sleep = (_trends?['sleep'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
-    final mood = (_trends?['mood'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
-    final screenTime = (_trends?['screen_time'] as List?)?.map((e) => (e as num).toDouble()).toList() ?? [];
+    final rawSleep = (_trends?['sleep'] as List?) ?? [];
 
-    if (sleep.isEmpty) {
+    if (rawSleep.isEmpty) {
       return _buildEmptyState();
     }
+
+    final chartData = _buildLast7Days(_trends!);
+    final dayLabels = chartData['labels'] as List<String>;
+    final sleep = chartData['sleep'] as List<double>;
+    final mood = chartData['mood'] as List<double>;
+    final screenTime = chartData['screen'] as List<double>;
 
     return RefreshIndicator(
       onRefresh: () async => _load(),
@@ -91,7 +140,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                 title: 'Sleep Duration',
                 icon: Icons.nightlight_round,
                 iconColor: AppTheme.accentBlue,
-                chart: _buildSleepBarChart(sleep),
+                chart: _buildSleepBarChart(sleep, dayLabels),
                 index: 0,
               ),
               const SizedBox(height: 14),
@@ -101,7 +150,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                 title: 'Mood Fluctuation',
                 icon: Icons.sentiment_satisfied_rounded,
                 iconColor: AppTheme.accentPurple,
-                chart: _buildMoodLineChart(mood),
+                chart: _buildMoodLineChart(mood, dayLabels),
                 index: 1,
               ),
               const SizedBox(height: 14),
@@ -111,7 +160,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                 title: 'Screen Time',
                 icon: Icons.phone_android_rounded,
                 iconColor: const Color(0xFFE040FB),
-                chart: _buildScreenTimeLineChart(screenTime),
+                chart: _buildScreenTimeLineChart(screenTime, dayLabels),
                 index: 2,
               ),
             ],
@@ -124,8 +173,6 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   // ──────────────────────────────────────────────────────
   //  UI HELPERS
   // ──────────────────────────────────────────────────────
-
-  static const _dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   Widget _buildEmptyState() {
     return Center(
@@ -201,7 +248,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   }
 
   // ── Sleep Bar Chart ──
-  Widget _buildSleepBarChart(List<double> data) {
+  Widget _buildSleepBarChart(List<double> data, List<String> dayLabels) {
     if (data.isEmpty) {
       return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
     }
@@ -236,10 +283,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               reservedSize: 24,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
                 );
               },
             ),
@@ -265,7 +312,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   }
 
   // ── Mood Line Chart ──
-  Widget _buildMoodLineChart(List<double> data) {
+  Widget _buildMoodLineChart(List<double> data, List<String> dayLabels) {
     if (data.isEmpty) {
       return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
     }
@@ -299,10 +346,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
                 );
               },
             ),
@@ -335,7 +382,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   }
 
   // ── Screen Time Line Chart ──
-  Widget _buildScreenTimeLineChart(List<double> data) {
+  Widget _buildScreenTimeLineChart(List<double> data, List<String> dayLabels) {
     if (data.isEmpty) {
       return Center(child: Text('Not enough data yet', style: AppTheme.mutedText));
     }
@@ -369,10 +416,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= _dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(_dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
                 );
               },
             ),

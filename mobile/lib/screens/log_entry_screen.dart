@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+
 import '../services/api_service.dart';
 import '../core/app_theme.dart';
+import '../providers/google_fit_provider.dart';
 
 class LogEntryScreen extends StatefulWidget {
   final VoidCallback? onSubmitted;
@@ -20,13 +22,11 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
   double _screenTime = 5.0;
   int _mood = 6;
   bool _exercise = false;
-  
+  bool _sleepAutoFilled = false;
   bool _loading = false;
   Map<String, dynamic>? _result;
 
-  bool _fitbitConnected = false;
-  bool _fitbitLoading = false;
-  bool _fitbitDataLoaded = false;
+
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -37,7 +37,20 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
     _fadeAnimation = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _animController.forward();
-    _tryLoadFitbitData();
+    // Auto-fill sleep from Google Fit if connected
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _tryAutoFillSleep();
+    });
+  }
+
+  void _tryAutoFillSleep() {
+    final fitProvider = context.read<GoogleFitProvider>();
+    if (fitProvider.isConnected && fitProvider.sleepHours > 0) {
+      setState(() {
+        _sleepHours = fitProvider.sleepHours;
+        _sleepAutoFilled = true;
+      });
+    }
   }
 
   @override
@@ -46,114 +59,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     super.dispose();
   }
 
-  Future<void> _tryLoadFitbitData() async {
-    setState(() => _fitbitLoading = true);
-    try {
-      final data = await ApiService.getFitbitDailyData();
-      if (data['connected'] == true) {
-        if (mounted) {
-          setState(() {
-            _fitbitConnected = true;
-            _fitbitDataLoaded = true;
-            if (data['sleep_hours'] != null && (data['sleep_hours'] as num) > 0) {
-              _sleepHours = (data['sleep_hours'] as num).toDouble();
-            }
-            _exercise = data['exercise'] ?? false;
-          });
-        }
-      }
-    } catch (_) {
-    } finally {
-      if (mounted) setState(() => _fitbitLoading = false);
-    }
-  }
 
-  Future<void> _connectFitbit() async {
-    try {
-      final authUrl = await ApiService.getFitbitAuthUrl();
-      final uri = Uri.parse(authUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) _showCodePasteDialog();
-      } else {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open Fitbit login page')));
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Fitbit Error: $e')));
-    }
-  }
-
-  void _showCodePasteDialog() {
-    final codeController = TextEditingController();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.bgElevated,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Paste Fitbit Code', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Copy the full URL from the browser address bar after authorizing.', style: AppTheme.mutedText.copyWith(height: 1.4)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: codeController,
-              style: AppTheme.bodyText,
-              decoration: InputDecoration(
-                hintText: 'https://www.google.com/?code=...',
-                hintStyle: AppTheme.mutedText,
-                prefixIcon: const Icon(Icons.link_rounded, size: 18, color: AppTheme.textMuted),
-                filled: true,
-                fillColor: AppTheme.bgCard,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppTheme.borderSubtle, width: 0.5)),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary))),
-          TextButton(
-            onPressed: () async {
-              final val = codeController.text.trim();
-              if (val.isEmpty) return;
-              Navigator.pop(ctx);
-              _exchangeCode(val);
-            },
-            child: const Text('Connect', style: TextStyle(color: AppTheme.accentBlue, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exchangeCode(String input) async {
-    if (input.isEmpty) return;
-    if (input.contains('fitbit.com/oauth2/authorize')) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You pasted the login URL. Paste the localhost URL instead.'), backgroundColor: Colors.orange));
-      return;
-    }
-    setState(() => _fitbitLoading = true);
-    try {
-      String code = input;
-      if (input.contains('code=')) {
-        final uri = Uri.parse(input.startsWith('http') ? input : 'http://$input');
-        code = uri.queryParameters['code'] ?? input;
-      }
-      await ApiService.exchangeFitbitCode(code);
-      setState(() => _fitbitConnected = true);
-      await _tryLoadFitbitData();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fitbit connected successfully!'), backgroundColor: AppTheme.accentGreen));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _fitbitLoading = false);
-    }
-  }
 
   Future<void> _submit() async {
     setState(() { _loading = true; _result = null; });
@@ -210,14 +116,35 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             Text('Record your metrics for cognitive analysis', style: AppTheme.labelText),
             const SizedBox(height: 24),
 
-            // ── Fitbit Card ──
-            _buildFitbitCard(),
 
-            if (_fitbitDataLoaded) ...[
-              const SizedBox(height: 8),
-              Center(child: Text('Fitbit values pre-filled. Adjust manually if needed.', style: AppTheme.mutedText)),
-            ],
-            const SizedBox(height: 16),
+
+            // ── Google Fit sleep auto-fill badge ──
+            if (_sleepAutoFilled)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3DD68C).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF3DD68C).withValues(alpha: 0.3), width: 0.5),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.watch_outlined, color: Color(0xFF3DD68C), size: 14),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Sleep auto-filled from Google Fit • ${_sleepHours.toStringAsFixed(1)}h',
+                        style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF3DD68C)),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => setState(() => _sleepAutoFilled = false),
+                      child: const Icon(Icons.close, color: Color(0xFF3DD68C), size: 14),
+                    ),
+                  ],
+                ),
+              ),
 
             // ── Sleep Slider ──
             _buildSliderCard(
@@ -231,7 +158,10 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
               max: 12,
               divisions: 24,
               activeColor: AppTheme.accentBlue,
-              onChanged: (v) => setState(() => _sleepHours = v),
+              onChanged: (v) => setState(() {
+                _sleepHours = v;
+                _sleepAutoFilled = false; // user overrode auto-fill
+              }),
             ),
             const SizedBox(height: 12),
 
@@ -277,65 +207,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
   //  UI HELPERS
   // ──────────────────────────────────────────────────────
 
-  Widget _buildFitbitCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(
-              color: (_fitbitConnected ? AppTheme.accentGreen : AppTheme.accentBlue).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.watch_rounded, color: _fitbitConnected ? AppTheme.accentGreen : AppTheme.accentBlue, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _fitbitConnected ? 'Fitbit Connected' : 'Connect Fitbit',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _fitbitConnected
-                      ? (_fitbitDataLoaded ? 'Metrics auto-filled securely' : 'Syncing data...')
-                      : 'Auto-fill sleep & exercise data',
-                  style: AppTheme.mutedText,
-                ),
-              ],
-            ),
-          ),
-          if (!_fitbitConnected)
-            _fitbitLoading
-                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2))
-                : TextButton(
-                    onPressed: _connectFitbit,
-                    style: TextButton.styleFrom(
-                      backgroundColor: AppTheme.accentBlue.withValues(alpha: 0.12),
-                      foregroundColor: AppTheme.accentBlue,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Text('Connect', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 12)),
-                  )
-          else
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: AppTheme.accentGreen, size: 22),
-              onPressed: _tryLoadFitbitData,
-              tooltip: 'Refresh Fitbit Data',
-            ),
-        ],
-      ),
-    );
-  }
+
+
 
   Widget _buildSliderCard({
     required IconData icon,

@@ -157,8 +157,6 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                   children: [
                     // ── Header ──
                     Text('Insights', style: AppTheme.headingLarge),
-                    const SizedBox(height: 4),
-                    Text('Cognitive digital twin', style: AppTheme.labelText),
                     const SizedBox(height: 20),
 
                     // ── Top Summary Card ──
@@ -727,7 +725,9 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 Row(
                   children: [
                     Expanded(child: _buildTrendChip('Mood', moodTrend, false)),
+                    const SizedBox(width: 10),
                     Expanded(child: _buildTrendChip('Sleep', sleepTrend, false)),
+                    const SizedBox(width: 10),
                     Expanded(child: _buildTrendChip('Screen', screenTrend, true)),
                   ],
                 ),

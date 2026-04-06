@@ -108,7 +108,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _toggleSafeSpace(bool active) {
-    // Disabled: always keep the normal Cognify AI theme
+    // Disabled: always keep the normal NeuraCare theme
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 16) return 'Good Afternoon';
+    if (hour >= 16 && hour < 20) return 'Good Evening';
+    return 'Good Night';
   }
 
   @override
@@ -151,48 +159,21 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: Colors.transparent,
           extendBody: true, // Allows body to scroll under the floating nav bar
           appBar: AppBar(
-            title: Row(
+            centerTitle: false,
+            titleSpacing: 16.0,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(10),
-                      gradient: LinearGradient(
-                        colors: _safeSpaceMode
-                            ? [const Color(0xFF10B981), const Color(0xFF059669)]
-                            : [
-                                const Color(0xFF3B82F6),
-                                const Color(0xFF8B5CF6)
-                              ],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                            color: (_safeSpaceMode
-                                    ? const Color(0xFF10B981)
-                                    : const Color(0xFF3B82F6))
-                                .withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            spreadRadius: 1),
-                      ]),
-                  child: Center(
-                    child: Icon(
-                        _safeSpaceMode
-                            ? Icons.spa_rounded
-                            : Icons.psychology_rounded,
-                        size: 20,
-                        color: Colors.white),
-                  ),
+                Text(
+                  _getGreeting(),
+                  style: const TextStyle(fontFamily: 'DM Sans', fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
                 ),
-                const SizedBox(width: 12),
-                Text(_safeSpaceMode ? 'Safe Space' : 'Cognify AI',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                      letterSpacing: 0.5,
-                      color: Theme.of(context).appBarTheme.foregroundColor ??
-                          (isDark ? Colors.white : const Color(0xFF1F2937)),
-                    )),
+                const SizedBox(height: 1), // Tiny gap
+                Text(
+                  _userName.isNotEmpty ? _userName.split(' ').first.trim() : 'there',
+                  style: const TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white, height: 1.1, letterSpacing: -0.3),
+                ),
               ],
             ),
             actions: [

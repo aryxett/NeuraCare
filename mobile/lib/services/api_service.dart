@@ -92,6 +92,19 @@ class ApiService {
     throw _handleError(response, 'Login failed');
   }
 
+  static Future<Map<String, dynamic>> changePin(String currentPin, String newPin) async {
+    final response = await _safeRequest(() async => http.post(
+      Uri.parse('$baseUrl/auth/change-pin'),
+      headers: await _authHeaders(),
+      body: jsonEncode({'current_pin': currentPin, 'new_pin': newPin}),
+    ));
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body);
+      if (json['success'] == true) return json;
+    }
+    throw _handleError(response, 'Failed to change PIN');
+  }
+
   static Future<Map<String, dynamic>> getMe() async {
     final response = await _safeRequest(() async => http.get(
       Uri.parse('$baseUrl/auth/me'),
@@ -199,45 +212,8 @@ class ApiService {
     throw _handleError(response, 'Failed to fetch behavioral correlations', url: url);
   }
 
-  // ══════════════════════════════════════════════════
-  // ── NEW PHASE 7: Fitbit API Integration ──
-  // ══════════════════════════════════════════════════
 
-  static Future<String> getFitbitAuthUrl() async {
-    final response = await _safeRequest(() async => http.get(
-      Uri.parse('$baseUrl/fitbit/login'),
-      headers: await _authHeaders(),
-    ));
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      if (json['success'] == true) return json['data']['auth_url'];
-    }
-    throw _handleError(response, 'Failed to fetch Fitbit Auth URL');
-  }
 
-  static Future<Map<String, dynamic>> getFitbitDailyData() async {
-    final response = await _safeRequest(() async => http.get(
-      Uri.parse('$baseUrl/fitbit/daily-data'),
-      headers: await _authHeaders(),
-    ));
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      if (json['success'] == true) return json['data'];
-    }
-    throw _handleError(response, 'Failed to fetch Fitbit Daily Data');
-  }
-
-  static Future<Map<String, dynamic>> exchangeFitbitCode(String code) async {
-    final response = await _safeRequest(() async => http.post(
-      Uri.parse('$baseUrl/fitbit/exchange-code?code=${Uri.encodeComponent(code)}'),
-      headers: await _authHeaders(),
-    ));
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body);
-      if (json['success'] == true) return json['data'];
-    }
-    throw _handleError(response, 'Fitbit exchange failed');
-  }
 
   // ==== Phase 5: Behavioral Automation ==== //
   static Future<Map<String, dynamic>> syncDailyUsageStats(

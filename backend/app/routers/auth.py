@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -104,3 +104,40 @@ async def update_profile(
     db.refresh(current_user)
 
     return {"success": True, "data": UserResponse.from_user(current_user).model_dump()}
+
+
+@router.post("/change-pin")
+async def change_pin(
+    pin_data: dict = Body(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Change user's PIN/password. Requires current password verification."""
+    current_pin = str(pin_data.get("current_pin", ""))
+    new_pin = str(pin_data.get("new_pin", ""))
+
+    if not current_pin or not new_pin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Both current and new PIN are required"
+        )
+
+    if len(new_pin) < 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New PIN must be at least 4 characters"
+        )
+
+    # Verify current password
+    is_valid, _ = verify_password(current_pin, current_user.password_hash)
+    if not is_valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current PIN is incorrect"
+        )
+
+    # Update to new password
+    current_user.password_hash = hash_password(new_pin)
+    db.commit()
+
+    return {"success": True, "message": "PIN updated successfully"}

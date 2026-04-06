@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "766434425172",
+    "project_id": "neuracare-ea262",
+    "storage_bucket": "neuracare-ea262.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:766434425172:android:eef8f79144275b129e30c1",
+        "android_client_info": {
+          "package_name": "com.example.cognify_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDL0Ns9IE9HrslId_ia7MLW5vIpLnvJtUY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
