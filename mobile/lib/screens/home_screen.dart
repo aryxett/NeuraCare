@@ -11,6 +11,7 @@ import 'profile_screen.dart';
 import '../services/api_service.dart';
 import '../services/usage_tracker_service.dart';
 import '../widgets/glass_container.dart';
+import '../core/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -22,6 +23,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  final Set<int> _initializedTabs = {0};
   final bool _safeSpaceMode = false;
   String _userName = '';
   String? _avatarBase64;
@@ -35,6 +37,20 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initUsageTracking();
     _loadUserName();
+    _preloadOtherTabs();
+  }
+
+  void _preloadOtherTabs() async {
+    // Stagger loading to prevent frame drops in UI
+    final tabsToPreload = [3, 4, 1, 2]; // Priority: Insights, History, Chat, Logs
+    for (int i = 0; i < tabsToPreload.length; i++) {
+      await Future.delayed(const Duration(milliseconds: 800)); // Load 1 tab every 0.8s
+      if (mounted && !_initializedTabs.contains(tabsToPreload[i])) {
+        setState(() {
+          _initializedTabs.add(tabsToPreload[i]);
+        });
+      }
+    }
   }
 
   Future<void> _initUsageTracking() async {
@@ -122,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(builder: (context, themeProvider, child) {
-      final isDark = themeProvider.isDarkMode;
+      final isDark = Theme.of(context).brightness == Brightness.dark;
 
       // Custom theme-aware gradients
       LinearGradient bgGradient;
@@ -167,36 +183,16 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   _getGreeting(),
-                  style: const TextStyle(fontFamily: 'DM Sans', fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
+                  style: TextStyle(fontFamily: 'DM Sans', fontSize: 12, fontWeight: FontWeight.w500, color: Color(0xFF94A3B8)),
                 ),
-                const SizedBox(height: 1), // Tiny gap
+                SizedBox(height: 1), // Tiny gap
                 Text(
                   _userName.isNotEmpty ? _userName.split(' ').first.trim() : 'there',
-                  style: const TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white, height: 1.1, letterSpacing: -0.3),
+                  style: TextStyle(fontFamily: 'Outfit', fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textP(context), height: 1.1, letterSpacing: -0.3),
                 ),
               ],
             ),
             actions: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, anim) => RotationTransition(
-                  turns: child.key == const ValueKey('dark')
-                      ? Tween<double>(begin: 0.5, end: 1.0).animate(anim)
-                      : Tween<double>(begin: 0.5, end: 1.0).animate(anim),
-                  child: FadeTransition(opacity: anim, child: child),
-                ),
-                child: IconButton(
-                  key: ValueKey(isDark ? 'dark' : 'light'),
-                  icon: Icon(
-                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                    size: 20,
-                    color: isDark ? Colors.amber : const Color(0xFF3B82F6),
-                  ),
-                  onPressed: () => themeProvider.toggleTheme(),
-                  tooltip: 'Toggle Theme',
-                ),
-              ),
-              const SizedBox(width: 4),
               GestureDetector(
                 onTap: _openProfile,
                 child: Container(
@@ -229,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       : Center(
                           child: Text(
                             _userName.isNotEmpty ? _userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                         ),
                 ),
@@ -239,12 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
           body: IndexedStack(
             index: _currentIndex,
             children: [
-              DashboardScreen(
-                  key: _dashboardKey, onStressUpdate: _toggleSafeSpace),
-              const TherapyChatScreen(),
-              LogEntryScreen(onSubmitted: _onDataSubmitted),
-              InsightsScreen(key: _insightsKey),
-              HistoryScreen(key: _historyKey),
+              _initializedTabs.contains(0) ? DashboardScreen(key: _dashboardKey, onStressUpdate: _toggleSafeSpace) : const SizedBox.shrink(),
+              _initializedTabs.contains(1) ? const TherapyChatScreen() : const SizedBox.shrink(),
+              _initializedTabs.contains(2) ? LogEntryScreen(onSubmitted: _onDataSubmitted) : const SizedBox.shrink(),
+              _initializedTabs.contains(3) ? InsightsScreen(key: _insightsKey) : const SizedBox.shrink(),
+              _initializedTabs.contains(4) ? HistoryScreen(key: _historyKey) : const SizedBox.shrink(),
             ],
           ),
           bottomNavigationBar: SafeArea(
@@ -259,10 +254,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: BottomNavigationBar(
                   currentIndex: _currentIndex,
                   onTap: (i) {
-                    setState(() => _currentIndex = i);
-                    if (i == 0) _dashboardKey.currentState?.refresh();
-                    if (i == 3) _insightsKey.currentState?.refresh();
-                    if (i == 4) _historyKey.currentState?.refresh();
+                    setState(() {
+                      _currentIndex = i;
+                      _initializedTabs.add(i);
+                    });
                   },
                   backgroundColor: Colors.transparent,
                   elevation: 0,

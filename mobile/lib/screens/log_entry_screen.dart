@@ -91,7 +91,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
       case 'Low': return AppTheme.accentGreen;
       case 'Moderate': return AppTheme.accentAmber;
       case 'High': return AppTheme.accentRed;
-      case 'Critical': return const Color(0xFFFCA5A5);
+      case 'Critical': return Colors.redAccent;
       default: return AppTheme.accentBlue;
     }
   }
@@ -112,9 +112,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
           children: [
             // ── Header ──
             Text('Daily Log', style: AppTheme.headingLarge),
-            const SizedBox(height: 4),
+            SizedBox(height: 4),
             Text('Record your metrics for cognitive analysis', style: AppTheme.labelText),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
 
 
 
@@ -124,23 +124,23 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                 margin: const EdgeInsets.only(bottom: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3DD68C).withValues(alpha: 0.1),
+                  color: AppTheme.accentGreen.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF3DD68C).withValues(alpha: 0.3), width: 0.5),
+                  border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.3), width: 0.5),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.watch_outlined, color: Color(0xFF3DD68C), size: 14),
-                    const SizedBox(width: 8),
+                    Icon(Icons.watch_outlined, color: AppTheme.accentGreen, size: 14),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Sleep auto-filled from Google Fit • ${_sleepHours.toStringAsFixed(1)}h',
-                        style: GoogleFonts.dmSans(fontSize: 11, color: const Color(0xFF3DD68C)),
+                        style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.accentGreen),
                       ),
                     ),
                     GestureDetector(
                       onTap: () => setState(() => _sleepAutoFilled = false),
-                      child: const Icon(Icons.close, color: Color(0xFF3DD68C), size: 14),
+                      child: Icon(Icons.close, color: AppTheme.accentGreen, size: 14),
                     ),
                   ],
                 ),
@@ -163,7 +163,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                 _sleepAutoFilled = false; // user overrode auto-fill
               }),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // ── Screen Time Slider ──
             _buildSliderCard(
@@ -179,22 +179,22 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
               activeColor: const Color(0xFFE040FB),
               onChanged: (v) => setState(() => _screenTime = v),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // ── Mood Picker ──
             _buildMoodCard(),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
 
             // ── Exercise Toggle ──
             _buildExerciseToggle(),
-            const SizedBox(height: 28),
+            SizedBox(height: 28),
 
             // ── Analyze Button ──
             _buildAnalyzeButton(),
 
             // ── Result Card ──
             if (_result != null) ...[
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
               _buildResultCard(),
             ],
           ],
@@ -226,9 +226,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
       child: Column(
         children: [
@@ -237,17 +237,17 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             children: [
               Row(children: [
                 Icon(icon, color: iconColor, size: 18),
-                const SizedBox(width: 8),
-                Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+                SizedBox(width: 8),
+                Text(label, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
               ]),
               Text(displayValue, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: valueColor, fontSize: 16)),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           SliderTheme(
             data: SliderThemeData(
               activeTrackColor: activeColor,
-              inactiveTrackColor: AppTheme.bgElevated,
+              inactiveTrackColor: AppTheme.elevated(context),
               thumbColor: Colors.white,
               overlayColor: Colors.transparent,
               trackHeight: 3.0,
@@ -267,9 +267,9 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,14 +278,14 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(children: [
-                const Icon(Icons.sentiment_satisfied_rounded, color: AppTheme.accentPurple, size: 18),
-                const SizedBox(width: 8),
-                Text('Mood Rating', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+                Icon(Icons.sentiment_satisfied_rounded, color: AppTheme.accentPurple, size: 18),
+                SizedBox(width: 8),
+                Text('Mood Rating', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
               ]),
               Text('$_mood/10', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.accentGreen, fontSize: 16)),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(5, (i) {
@@ -307,13 +307,13 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                   width: 50, height: 50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: selected ? AppTheme.accentPurple.withValues(alpha: 0.15) : AppTheme.bgElevated,
+                    color: selected ? AppTheme.accentPurple.withValues(alpha: 0.15) : AppTheme.elevated(context),
                     border: Border.all(
                       color: selected ? AppTheme.accentPurple : Colors.transparent,
                       width: selected ? 2 : 0,
                     ),
                   ),
-                  child: Icon(iconData, color: selected ? AppTheme.accentPurple : AppTheme.textSecondary, size: 28),
+                  child: Icon(iconData, color: selected ? AppTheme.accentPurple : AppTheme.textS(context), size: 28),
                 ),
               );
             }),
@@ -327,24 +327,24 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(children: [
-            const Icon(Icons.fitness_center_rounded, color: AppTheme.accentGreen, size: 18),
-            const SizedBox(width: 8),
-            Text('Physical Activity', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+            Icon(Icons.fitness_center_rounded, color: AppTheme.accentGreen, size: 18),
+            SizedBox(width: 8),
+            Text('Physical Activity', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
           ]),
           Switch(
             value: _exercise,
             activeThumbColor: AppTheme.accentGreen,
             activeTrackColor: AppTheme.accentGreen.withValues(alpha: 0.3),
-            inactiveThumbColor: AppTheme.textMuted,
-            inactiveTrackColor: AppTheme.bgElevated,
+            inactiveThumbColor: AppTheme.textM(context),
+            inactiveTrackColor: AppTheme.elevated(context),
             onChanged: (v) => setState(() => _exercise = v),
           ),
         ],
@@ -365,7 +365,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
           elevation: 0,
         ),
         child: _loading
-          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
           : Text('Analyze Patterns', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
       ),
     );
@@ -380,14 +380,14 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.bgElevated,
+        color: AppTheme.elevated(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.accentAmber.withValues(alpha: 0.5), width: 0.5),
       ),
       child: Column(
         children: [
-          Text('AI Prediction Model', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-          const SizedBox(height: 22),
+          Text('AI Prediction Model', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+          SizedBox(height: 22),
           CircularPercentIndicator(
             radius: 58,
             lineWidth: 8,
@@ -396,7 +396,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             animationDuration: 900,
             circularStrokeCap: CircularStrokeCap.round,
             progressColor: rColor,
-            backgroundColor: AppTheme.bgCard,
+            backgroundColor: AppTheme.card(context),
             center: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -404,11 +404,11 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                   score.toStringAsFixed(0),
                   style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: rColor),
                 ),
-                Text('Score', style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.textSecondary)),
+                Text('Score', style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.textS(context))),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
@@ -419,8 +419,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             child: Text('Risk: $riskLevel', style: GoogleFonts.dmSans(color: rColor, fontWeight: FontWeight.w600, fontSize: 13)),
           ),
           if (message.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Text(message, style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary, height: 1.5), textAlign: TextAlign.center),
+            SizedBox(height: 16),
+            Text(message, style: AppTheme.bodyText.copyWith(color: AppTheme.textS(context), height: 1.5), textAlign: TextAlign.center),
           ],
         ],
       ),

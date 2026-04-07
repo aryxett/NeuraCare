@@ -144,7 +144,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     return RefreshIndicator(
       onRefresh: _load,
       color: AppTheme.accentBlue,
-      backgroundColor: AppTheme.bgPrimary,
+      backgroundColor: AppTheme.bg(context),
       child: FadeTransition(
         opacity: _fadeAnimation,
         child: CustomScrollView(
@@ -167,7 +167,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Overview', style: AppTheme.headingLarge),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     Text(
                       'Your cognitive digital twin analysis',
                       style: AppTheme.labelText,
@@ -193,7 +193,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                         progressColor: AppTheme.accentBlue,
                       ),
                     ),
-                    const SizedBox(width: 14),
+                    SizedBox(width: 14),
                     Expanded(
                       child: _buildRingCard(
                         label: 'AI Stress',
@@ -222,14 +222,14 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                       value: '${avgSleepVal.toStringAsFixed(1)}h',
                       label: 'Sleep',
                     )),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(child: _buildQuickStatCard(
                       icon: Icons.phone_android_rounded,
                       iconColor: AppTheme.accentPurple,
                       value: '${avgScreenVal.toStringAsFixed(1)}h',
                       label: 'Screen',
                     )),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(child: _buildQuickStatCard(
                       icon: Icons.sentiment_satisfied_alt_rounded,
                       iconColor: AppTheme.accentGreen,
@@ -254,7 +254,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: Text('Detected Patterns', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+                  child: Text('Detected Patterns', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
                 ),
               ),
             if (triggers.isNotEmpty)
@@ -262,7 +262,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildPatternCard(triggers[index].toString()),
+                    (context, index) => _buildPatternCard(_stripEmoji(triggers[index].toString())),
                     childCount: triggers.length,
                   ),
                 ),
@@ -278,6 +278,15 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
   // ──────────────────────────────────────────────────────────────────
   //  UI HELPERS
   // ──────────────────────────────────────────────────────────────────
+
+  String _stripEmoji(String text) {
+    if (text.isEmpty) return text;
+    text = text.trim();
+    if (text.runes.isNotEmpty && text.runes.first > 1000) {
+      return String.fromCharCodes(text.runes.skip(1)).trim();
+    }
+    return text;
+  }
 
   Color _stressColor(double v) {
     if (v > 60) return AppTheme.accentRed;
@@ -299,11 +308,11 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 14),
-      decoration: AppTheme.cardDecoration,
+      decoration: AppTheme.cardDecorationFor(context),
       child: Column(
         children: [
           Text(label, style: AppTheme.labelText),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           CircularPercentIndicator(
             radius: 52,
             lineWidth: 8,
@@ -312,17 +321,17 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
             animationDuration: 900,
             circularStrokeCap: CircularStrokeCap.round,
             progressColor: progressColor,
-            backgroundColor: AppTheme.bgElevated,
+            backgroundColor: AppTheme.elevated(context),
             center: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   centerText,
-                  style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                  style: GoogleFonts.outfit(fontSize: 26, fontWeight: FontWeight.bold, color: AppTheme.textP(context)),
                 ),
                 Text(
                   subText,
-                  style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: subTextColor ?? AppTheme.textSecondary),
+                  style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.w600, color: subTextColor ?? AppTheme.textS(context)),
                 ),
               ],
             ),
@@ -342,19 +351,19 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
       child: Column(
         children: [
           Icon(icon, color: iconColor, size: 22),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textP(context)),
           ),
-          const SizedBox(height: 2),
+          SizedBox(height: 2),
           Text(label, style: AppTheme.mutedText),
         ],
       ),
@@ -365,28 +374,28 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
   Widget _buildBurnoutCard(double burnoutValue) {
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: AppTheme.cardDecoration,
+      decoration: AppTheme.cardDecorationFor(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Burnout Risk', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+              Text('Burnout Risk', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
               Text('${burnoutValue.toInt()}%', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.accentBlue)),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(3),
             child: LinearProgressIndicator(
               value: (burnoutValue / 100).clamp(0.0, 1.0),
-              backgroundColor: AppTheme.bgElevated,
+              backgroundColor: AppTheme.elevated(context),
               valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.accentBlue),
               minHeight: 6,
             ),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           Text(
             burnoutValue > 60
                 ? 'High risk detected. Consider reducing cognitive load.'
@@ -404,9 +413,9 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
       child: Row(
         children: [
@@ -416,9 +425,9 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
               color: AppTheme.accentAmber.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.warning_rounded, color: AppTheme.accentAmber, size: 16),
+            child: Icon(Icons.warning_rounded, color: AppTheme.accentAmber, size: 16),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: 14),
           Expanded(
             child: Text(text, style: AppTheme.bodyText.copyWith(height: 1.4)),
           ),
@@ -431,7 +440,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
   Widget _buildMoodCheckInCard() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: AppTheme.cardDecoration,
+      decoration: AppTheme.cardDecorationFor(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -443,15 +452,15 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                   color: AppTheme.accentBlue.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.wb_sunny_rounded, color: AppTheme.accentBlue, size: 16),
+                child: Icon(Icons.wb_sunny_rounded, color: AppTheme.accentBlue, size: 16),
               ),
-              const SizedBox(width: 10),
-              Text('How are you feeling today?', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+              SizedBox(width: 10),
+              Text('How are you feeling today?', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           if (_submittingMood)
-            const Padding(
+            Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
               child: Center(
                 child: Row(
@@ -475,7 +484,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                     _buildMoodChip('calm', 'Calm', AppTheme.accentGreen, chipWidth),
                     _buildMoodChip('happy', 'Happy', AppTheme.accentBlue, chipWidth),
                     _buildMoodChip('motivated', 'Motivated', AppTheme.accentPurple, chipWidth),
-                    _buildMoodChip('neutral', 'Neutral', AppTheme.textSecondary, chipWidth),
+                    _buildMoodChip('neutral', 'Neutral', AppTheme.textS(context), chipWidth),
                     _buildMoodChip('stressed', 'Stressed', AppTheme.accentRed, chipWidth),
                     _buildMoodChip('tired', 'Tired', AppTheme.accentAmber, chipWidth),
                   ],
@@ -536,35 +545,35 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           _shimmerBox(width: 140, height: 28),
-          const SizedBox(height: 6),
+          SizedBox(height: 6),
           _shimmerBox(width: 220, height: 14),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           Row(
             children: [
               Expanded(child: _shimmerBox(height: 180)),
-              const SizedBox(width: 14),
+              SizedBox(width: 14),
               Expanded(child: _shimmerBox(height: 180)),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           Row(
             children: [
               Expanded(child: _shimmerBox(height: 90)),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(child: _shimmerBox(height: 90)),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(child: _shimmerBox(height: 90)),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _shimmerBox(height: 120),
-          const SizedBox(height: 24),
+          SizedBox(height: 24),
           _shimmerBox(width: 160, height: 18),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _shimmerBox(height: 56),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _shimmerBox(height: 56),
         ],
       ),
@@ -577,9 +586,9 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppTheme.bgCard,
+        color: AppTheme.card(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+        border: Border.all(color: AppTheme.border(context), width: 0.5),
       ),
     );
   }
@@ -594,28 +603,28 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.textMuted),
-              const SizedBox(height: 16),
+              Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.textM(context)),
+              SizedBox(height: 16),
               Text('No Analytics Data', style: AppTheme.headingMedium),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               if (_error != null) ...[
                 Text(
                   'Error: $_error',
                   style: AppTheme.mutedText.copyWith(color: AppTheme.accentRed),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
               ],
               Text(
                 'Submit your first daily log to generate insights.',
                 style: AppTheme.mutedText,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               ElevatedButton.icon(
-                icon: const Icon(Icons.refresh_rounded, size: 18),
+                icon: Icon(Icons.refresh_rounded, size: 18),
                 onPressed: _load,
-                label: const Text('Refresh Data'),
+                label: Text('Refresh Data'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentBlue.withValues(alpha: 0.12),
                   foregroundColor: AppTheme.accentBlue,

@@ -102,7 +102,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
   Widget build(BuildContext context) {
     super.build(context);
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2));
+      return Center(child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2));
     }
 
     final rawSleep = (_trends?['sleep'] as List?) ?? [];
@@ -120,7 +120,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     return RefreshIndicator(
       onRefresh: () async => _load(),
       color: AppTheme.accentBlue,
-      backgroundColor: AppTheme.bgPrimary,
+      backgroundColor: AppTheme.bg(context),
       child: SingleChildScrollView(
         padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
         physics: const AlwaysScrollableScrollPhysics(),
@@ -131,9 +131,9 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
             children: [
               // ── Header ──
               Text('History', style: AppTheme.headingLarge),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text('Your weekly cognitive patterns', style: AppTheme.labelText),
-              const SizedBox(height: 28),
+              SizedBox(height: 28),
 
               // ── Sleep BarChart ──
               _buildChartCard(
@@ -143,7 +143,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                 chart: _buildSleepBarChart(sleep, dayLabels),
                 index: 0,
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
 
               // ── Mood LineChart ──
               _buildChartCard(
@@ -153,13 +153,13 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                 chart: _buildMoodLineChart(mood, dayLabels),
                 index: 1,
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
 
               // ── Screen Time LineChart ──
               _buildChartCard(
                 title: 'Screen Time',
                 icon: Icons.phone_android_rounded,
-                iconColor: const Color(0xFFE040FB),
+                iconColor: AppTheme.accentPurple,
                 chart: _buildScreenTimeLineChart(screenTime, dayLabels),
                 index: 2,
               ),
@@ -181,10 +181,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.bar_chart_rounded, size: 48, color: AppTheme.textMuted.withValues(alpha: 0.4)),
-            const SizedBox(height: 16),
+            Icon(Icons.bar_chart_rounded, size: 48, color: AppTheme.textM(context).withValues(alpha: 0.4)),
+            SizedBox(height: 16),
             Text('No History Yet', style: AppTheme.headingMedium),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Text(
               'Start logging daily data to see your\nwellness trends over time.',
               style: AppTheme.mutedText,
@@ -215,9 +215,9 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.bgCard,
+                color: AppTheme.card(context),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderSubtle, width: 0.5),
+                border: Border.all(color: AppTheme.border(context), width: 0.5),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,11 +232,11 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
                         ),
                         child: Icon(icon, color: iconColor, size: 16),
                       ),
-                      const SizedBox(width: 10),
-                      Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textPrimary)),
+                      SizedBox(width: 10),
+                      Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   SizedBox(height: 180, child: chart),
                 ],
               ),
@@ -260,7 +260,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 3,
-          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+          getDrawingHorizontalLine: (_) => FlLine(color: AppTheme.border(context), strokeWidth: 0.5),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -273,7 +273,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               interval: 3,
               getTitlesWidget: (value, meta) => Padding(
                 padding: const EdgeInsets.only(right: 6),
-                child: Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                child: Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
               ),
             ),
           ),
@@ -283,10 +283,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               reservedSize: 24,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
                 );
               },
             ),
@@ -302,7 +302,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               backDrawRodData: BackgroundBarChartRodData(
                 show: true,
                 toY: 12,
-                color: AppTheme.bgElevated,
+                color: AppTheme.elevated(context),
               ),
             ),
           ]);
@@ -325,7 +325,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 2,
-          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+          getDrawingHorizontalLine: (_) => FlLine(color: AppTheme.border(context), strokeWidth: 0.5),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -336,7 +336,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               showTitles: true,
               reservedSize: 24,
               interval: 2,
-              getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+              getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
             ),
           ),
           bottomTitles: AxisTitles(
@@ -346,10 +346,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
                 );
               },
             ),
@@ -367,7 +367,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
                 radius: 4,
                 color: AppTheme.accentPurple,
-                strokeColor: AppTheme.bgCard,
+                strokeColor: AppTheme.card(context),
                 strokeWidth: 2,
               ),
             ),
@@ -395,7 +395,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           show: true,
           drawVerticalLine: false,
           horizontalInterval: 4,
-          getDrawingHorizontalLine: (_) => const FlLine(color: AppTheme.borderSubtle, strokeWidth: 0.5),
+          getDrawingHorizontalLine: (_) => FlLine(color: AppTheme.border(context), strokeWidth: 0.5),
         ),
         borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
@@ -406,7 +406,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               showTitles: true,
               reservedSize: 28,
               interval: 4,
-              getTitlesWidget: (value, meta) => Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+              getTitlesWidget: (value, meta) => Text('${value.toInt()}h', style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
             ),
           ),
           bottomTitles: AxisTitles(
@@ -416,10 +416,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
               interval: 1,
               getTitlesWidget: (value, meta) {
                 final i = value.toInt();
-                if (i < 0 || i >= dayLabels.length) return const SizedBox.shrink();
+                if (i < 0 || i >= dayLabels.length) return SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                  child: Text(dayLabels[i], style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textM(context))),
                 );
               },
             ),
@@ -429,21 +429,21 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           LineChartBarData(
             spots: data.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
             isCurved: true,
-            color: const Color(0xFFE040FB),
+            color: AppTheme.accentPurple,
             barWidth: 2.5,
             isStrokeCapRound: true,
             dotData: FlDotData(
               show: true,
               getDotPainter: (s, _, __, ___) => FlDotCirclePainter(
                 radius: 4,
-                color: const Color(0xFFE040FB),
-                strokeColor: AppTheme.bgCard,
+                color: AppTheme.accentPurple,
+                strokeColor: AppTheme.card(context),
                 strokeWidth: 2,
               ),
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: const Color(0xFFE040FB).withValues(alpha: 0.08),
+              color: AppTheme.accentPurple.withValues(alpha: 0.08),
             ),
           ),
         ],

@@ -4,29 +4,65 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeProvider extends ChangeNotifier {
   static const String _themePrefKey = 'isDarkMode';
+  static const String _themeModePrefKey = 'themeMode';
   ThemeMode _themeMode = ThemeMode.dark; // Default to dark
 
-  ThemeProvider({bool isDark = true}) {
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+  ThemeProvider({ThemeMode mode = ThemeMode.dark}) {
+    _themeMode = mode;
   }
 
   static Future<ThemeProvider> initialize() async {
     final prefs = await SharedPreferences.getInstance();
-    // Default to true (dark mode) if not set
+    // Check new key first, fallback to old bool key
+    final modeStr = prefs.getString(_themeModePrefKey);
+    if (modeStr != null) {
+      final mode = _themeModeFromString(modeStr);
+      return ThemeProvider(mode: mode);
+    }
+    // Fallback: old bool key
     final isDark = prefs.getBool(_themePrefKey) ?? true;
-    return ThemeProvider(isDark: isDark);
+    return ThemeProvider(mode: isDark ? ThemeMode.dark : ThemeMode.light);
   }
 
   ThemeMode get themeMode => _themeMode;
 
   bool get isDarkMode => _themeMode == ThemeMode.dark;
 
-  Future<void> toggleTheme() async {
-    _themeMode = isDarkMode ? ThemeMode.light : ThemeMode.dark;
+  /// Set theme mode to system, light, or dark
+  Future<void> setThemeMode(ThemeMode mode) async {
+    _themeMode = mode;
     notifyListeners();
-
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_themePrefKey, isDarkMode);
+    await prefs.setString(_themeModePrefKey, _themeModeToString(mode));
+  }
+
+  /// Legacy toggle (for backward compat)
+  Future<void> toggleTheme() async {
+    await setThemeMode(isDarkMode ? ThemeMode.light : ThemeMode.dark);
+  }
+
+  static String _themeModeToString(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'system';
+      case ThemeMode.light:
+        return 'light';
+      case ThemeMode.dark:
+        return 'dark';
+    }
+  }
+
+  static ThemeMode _themeModeFromString(String s) {
+    switch (s) {
+      case 'system':
+        return ThemeMode.system;
+      case 'light':
+        return ThemeMode.light;
+      case 'dark':
+        return ThemeMode.dark;
+      default:
+        return ThemeMode.dark;
+    }
   }
 
   static ThemeData get lightTheme {
@@ -137,7 +173,7 @@ class ThemeProvider extends ChangeNotifier {
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
-        textStyle: const TextStyle(
+        textStyle: TextStyle(
             fontSize: 16, fontWeight: FontWeight.w600, letterSpacing: 0.5),
       ),
     );
@@ -159,7 +195,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
+        borderSide: BorderSide(color: Color(0xFF3B82F6), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.4)),

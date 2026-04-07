@@ -63,74 +63,74 @@ def generate_insights(
     # ── Sleep Analysis ──
     if sleep_hours < 5:
         insights.append(
-            "⚠️ Critical sleep deficit detected. You're getting less than 5 hours of sleep, "
+            "Critical sleep deficit detected. You're getting less than 5 hours of sleep, "
             "which significantly increases stress hormones and impairs cognitive function."
         )
         recommendations.append("Aim for 7-9 hours of sleep. Set a bedtime alarm 30 minutes before your target sleep time.")
     elif sleep_hours < 6:
         insights.append(
-            "😴 Your sleep is below recommended levels. Sleep deprivation compounds daily, "
+            "Your sleep is below recommended levels. Sleep deprivation compounds daily, "
             "leading to increased irritability and reduced focus."
         )
         recommendations.append("Try reducing caffeine intake after 2 PM and establish a consistent sleep schedule.")
     elif sleep_hours >= 8:
-        insights.append("✅ Excellent sleep duration! Your body is getting adequate recovery time.")
+        insights.append("Excellent sleep duration! Your body is getting adequate recovery time.")
     else:
-        insights.append("😐 Your sleep is adequate but could be improved for optimal wellness.")
+        insights.append("Your sleep is adequate but could be improved for optimal wellness.")
 
     # ── Screen Time Analysis ──
     if screen_time > 10:
         insights.append(
-            "📱 Excessive screen time detected ({:.1f}h). Prolonged screen exposure is linked to "
+            "Excessive screen time detected ({:.1f}h). Prolonged screen exposure is linked to "
             "eye strain, disrupted sleep patterns, and increased anxiety.".format(screen_time)
         )
         recommendations.append("Use the 20-20-20 rule: every 20 minutes, look at something 20 feet away for 20 seconds.")
         recommendations.append("Set app timers and designate screen-free hours, especially before bed.")
     elif screen_time > 7:
         insights.append(
-            "📱 Your screen time ({:.1f}h) is higher than ideal. Consider reducing non-essential usage.".format(screen_time)
+            "Your screen time ({:.1f}h) is higher than ideal. Consider reducing non-essential usage.".format(screen_time)
         )
         recommendations.append("Try replacing 1 hour of screen time with a walk or reading a physical book.")
     elif screen_time <= 4:
-        insights.append("✅ Great screen time management. Low screen exposure supports better sleep and mood.")
+        insights.append("Great screen time management. Low screen exposure supports better sleep and mood.")
 
     # ── Mood Analysis ──
     if mood <= 3:
         insights.append(
-            "🔴 Your reported mood is low ({}/10). Persistent low mood may indicate "
+            "Your reported mood is low ({}/10). Persistent low mood may indicate "
             "the need for additional support.".format(mood)
         )
         recommendations.append("Consider talking to someone you trust about how you're feeling.")
         recommendations.append("Practice gratitude journaling — write down 3 things you're thankful for today.")
     elif mood <= 5:
         insights.append(
-            "😐 Your mood is neutral ({}/10). Small positive actions can help boost your emotional state.".format(mood)
+            "Your mood is neutral ({}/10). Small positive actions can help boost your emotional state.".format(mood)
         )
         recommendations.append("Try a 10-minute mindfulness meditation or deep breathing exercise.")
     elif mood >= 8:
-        insights.append("😊 You're in a great mood ({}/10)! Keep up the positive habits.".format(mood))
+        insights.append("You're in a great mood ({}/10)! Keep up the positive habits.".format(mood))
 
     # ── Exercise Analysis ──
     if not exercise:
         insights.append(
-            "🏃 No exercise logged today. Physical activity releases endorphins and is one of the "
+            "No exercise logged today. Physical activity releases endorphins and is one of the "
             "most effective natural stress reducers."
         )
         recommendations.append("Even 15 minutes of brisk walking can significantly improve your mood and stress levels.")
     else:
-        insights.append("💪 Great job exercising today! Physical activity is a powerful stress reducer.")
+        insights.append("Great job exercising today! Physical activity is a powerful stress reducer.")
 
     # ── Compound Pattern Analysis ──
     if sleep_hours < 6 and screen_time > 8 and not exercise:
         insights.append(
-            "🚨 PATTERN ALERT: The combination of poor sleep, high screen time, and no exercise "
+            "PATTERN ALERT: The combination of poor sleep, high screen time, and no exercise "
             "creates a high-risk stress environment. This pattern often leads to burnout."
         )
         recommendations.insert(0, "PRIORITY: Break this negative cycle by starting with just one change — a short walk or earlier bedtime.")
 
     if sleep_hours < 6 and mood <= 4:
         insights.append(
-            "🔗 Your low mood appears correlated with insufficient sleep. Sleep quality directly "
+            "Your low mood appears correlated with insufficient sleep. Sleep quality directly "
             "impacts emotional regulation and resilience."
         )
 
@@ -143,12 +143,12 @@ def generate_insights(
 
         if avg_sleep < 6:
             insights.append(
-                "📊 TREND: Your average sleep over the past week is {:.1f}h. "
+                "TREND: Your average sleep over the past week is {:.1f}h. "
                 "You may be experiencing accumulated fatigue.".format(avg_sleep)
             )
         if avg_mood < 5:
             insights.append(
-                "📊 TREND: Your average mood over the past week is {:.1f}/10. "
+                "TREND: Your average mood over the past week is {:.1f}/10. "
                 "Consider if external factors are affecting your wellbeing.".format(avg_mood)
             )
 
@@ -156,27 +156,27 @@ def generate_insights(
         if len(recent_sleep) >= 3:
             # Check for decreasing sleep trend
             if all(recent_sleep[i] >= recent_sleep[i+1] for i in range(len(recent_sleep)-1)):
-                 insights.append("📉 PATTERN: Your sleep has been consistently decreasing this week. This is a primary driver for rising stress levels.")
+                 insights.append("PATTERN: Your sleep has been consistently decreasing this week. This is a primary driver for rising stress levels.")
             
             # Check for increasing screen time trend
             recent_screen = [log.screen_time for log in recent_logs[-7:]]
             if len(recent_screen) >= 3 and all(recent_screen[i] <= recent_screen[i+1] for i in range(len(recent_screen)-1)):
-                 insights.append("📈 PATTERN: Your screen time is on a steady upward trend. Excessive digital exposure may be draining your mental energy.")
+                 insights.append("PATTERN: Your screen time is on a steady upward trend. Excessive digital exposure may be draining your mental energy.")
 
         # Detect declining mood trends
         if len(recent_moods) >= 3:
             if all(recent_moods[i] >= recent_moods[i + 1] for i in range(min(3, len(recent_moods) - 1))):
                 insights.append(
-                    "📉 DECLINING TREND: Your mood has been consistently decreasing. "
+                    "DECLINING TREND: Your mood has been consistently decreasing. "
                     "It may be time to reassess your daily routine."
                 )
 
     # ── AI Micro Therapy Suggestions ──
     if risk_level in ["High", "Critical"]:
-        recommendations.append("✨ THERAPY SUGGESTION: Take 5 minutes for a guided breathing exercise right now.")
-        recommendations.append("✨ THERAPY SUGGESTION: Step away from all digital devices for at least 15 minutes to reset.")
+        recommendations.append("THERAPY SUGGESTION: Take 5 minutes for a guided breathing exercise right now.")
+        recommendations.append("THERAPY SUGGESTION: Step away from all digital devices for at least 15 minutes to reset.")
     elif mood <= 4:
-        recommendations.append("✨ THERAPY SUGGESTION: Write down exactly what is worrying you in your reflection journal.")
+        recommendations.append("THERAPY SUGGESTION: Write down exactly what is worrying you in your reflection journal.")
 
     # ── Generate Summary ──
     summary = _generate_summary(stress_score, risk_level, sleep_hours, mood, exercise)
@@ -210,7 +210,7 @@ def _generate_summary(stress_score: float, risk_level: str, sleep_hours: float, 
         )
     else:
         return (
-            f"⚠️ Your stress score is {stress_score:.0f}/100 ({risk_level} risk). "
+            f"Your stress score is {stress_score:.0f}/100 ({risk_level} risk). "
             f"This indicates significant stress accumulation. "
             f"Immediate lifestyle adjustments are strongly recommended. "
             f"If you're feeling overwhelmed, please reach out to a mental health professional."
