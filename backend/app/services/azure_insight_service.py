@@ -42,15 +42,17 @@ def generate_azure_insights(
             "1. 'summary': A concise (2-3 sentences) overall assessment of the user's wellbeing today.\n"
             "2. 'ai_insights': An array of 2-3 specific observations about their behavioral patterns (e.g., 'Your high screen time seems to coincide with lower mood late in the day').\n"
             "3. 'recommendations': An array of 2-3 actionable, supportive recommendations (e.g., 'Try a 5-minute digital detox before bed').\n"
-            "Avoid generic advice. Focus on the relationship between their data points."
+            "Avoid generic advice. Focus on the relationship between their data points. "
+            "CRITICAL: Do NOT use any emojis in your response. Your tone must be highly professional and clinical."
         )
 
         headers = {
-            "api-key": settings.AZURE_OPENAI_API_KEY,
+            "Authorization": f"Bearer {settings.AZURE_OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
         
         payload = {
+            "model": "gpt-4o-mini",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Analyze this wellness data and respond ONLY with the JSON format specified:\n\n{data_context}"}

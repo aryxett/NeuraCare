@@ -20,11 +20,12 @@ def generate_chat_title(message: str) -> str:
         )
         
         headers = {
-            "api-key": settings.AZURE_OPENAI_API_KEY,
+            "Authorization": f"Bearer {settings.AZURE_OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
         
         payload = {
+            "model": "gpt-4o-mini",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": message[:500]}
@@ -111,11 +112,12 @@ def generate_therapy_response(
         messages.append({"role": "user", "content": user_message})
 
         headers = {
-            "api-key": settings.AZURE_OPENAI_API_KEY,
+            "Authorization": f"Bearer {settings.AZURE_OPENAI_API_KEY}",
             "Content-Type": "application/json"
         }
         
         payload = {
+            "model": "gpt-4o-mini",
             "messages": messages,
             "temperature": 0.7,
             "max_tokens": 500
