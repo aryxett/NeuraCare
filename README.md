@@ -1,4 +1,4 @@
-# Cognify AI — Cognitive Digital Twin for Behavioral Wellness Prediction
+# NeuraCare — Cognitive Digital Twin for Behavioral Wellness Prediction
 
 <p align="center">
   <strong>🧠 An AI-powered system that creates a Cognitive Digital Twin to learn your behavioral patterns and predict stress/burnout risk</strong>
