@@ -217,6 +217,7 @@ async def get_weekly_trends(
         .filter(
             BehaviorLog.user_id == current_user.user_id,
             BehaviorLog.date >= seven_days_ago,
+            BehaviorLog.sleep_hours > 0,  # Exclude auto-generated logs (sync-usage creates tentative logs with sleep=0)
         )
         .order_by(BehaviorLog.date.asc())
         .all()

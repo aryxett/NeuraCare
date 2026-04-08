@@ -1,7 +1,7 @@
-# NeuraCare — AI-Powered Mental Wellness & Therapy Companion
+# NeuraCare — Cognitive Digital Twin for Behavioral Wellness Prediction
 
 <p align="center">
-  <strong>🧠 An AI-powered system that learns your behavioral patterns, predicts stress/burnout risk, and provides automated, conversational therapy sessions.</strong>
+  <strong>🧠 An AI-powered system that creates a Cognitive Digital Twin to learn your behavioral patterns and predict stress/burnout risk</strong>
 </p>
 
 ---
@@ -10,102 +10,125 @@
 
 ```
 Mobile App (Flutter) ─┐
-                       ├──► FastAPI Backend ──► MongoDB Database
+                       ├──► FastAPI Backend ──► PostgreSQL Database
 Web Dashboard (React) ─┘         │
                                  ├──► ML Prediction Engine (Scikit-learn)
-                                 └──► GitHub Models API (Therapy & Insights)
+                                 └──► AI Insight Generator
 ```
 
 ## 📦 Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Backend API | Python, FastAPI |
-| Database | MongoDB |
+| Backend API | Python, FastAPI, SQLAlchemy |
+| Database | PostgreSQL |
 | Machine Learning | Scikit-learn, Pandas, NumPy |
-| AI Integration | GitHub Models API (LLM for Chat & Insights) |
 | Web Dashboard | React, TailwindCSS, Recharts |
-| Mobile App | Flutter (Android) with custom AppTheme system |
-| Deployment | Local, Docker, Render (Backend) |
+| Mobile App | Flutter (Android) |
+| Auth | JWT (python-jose + bcrypt) |
+| Deployment | Docker, Docker Compose |
 
-## ✨ Core Features
-- **Smart Dashboard**: Daily analytics with actionable insights and progress.
-- **Therapy Chat**: AI-driven conversational assistant acting as an empathetic therapist.
-- **Deep Analytics**: Google Fit integration overlaying sleep, exercise, and screen-time.
-- **Life Patterns**: Advanced breakdown of long-term habits triggering stress loops.
-
-## 🚀 Quick Start (Local Development)
+## 🚀 Quick Start
 
 ### Prerequisites
 - Python 3.11+
 - Node.js 18+
-- MongoDB instance (local or Atlas cluster)
+- PostgreSQL 16+
 - Flutter 3.2+ (for mobile)
+- Docker & Docker Compose (optional)
 
-### 1. Backend Setup
+### Option 1: Docker Compose (Recommended)
 
+```bash
+docker-compose up --build
+```
+
+This starts:
+- PostgreSQL on port **5432**
+- FastAPI Backend on port **8000** → [http://localhost:8000/docs](http://localhost:8000/docs)
+- React Dashboard on port **3000** → [http://localhost:3000](http://localhost:3000)
+
+### Option 2: Manual Setup
+
+#### 1. Backend
 ```bash
 cd backend
 pip install -r requirements.txt
 
-# Create .env file and add your MongoDB Database URL + GitHub API Token
-# MONGODB_URL=...
-# GITHUB_MODELS_API_KEY=ghp_...
+# Train the ML model
+python -m app.ml.train
 
 # Start the server
 uvicorn app.main:app --reload --port 8000
 ```
-*API Docs available at: [http://localhost:8000/docs](http://localhost:8000/docs)*
 
-### 2. Mobile App Setup
-
-```bash
-cd mobile
-flutter pub get
-
-# Connect Android Physical Device or Emulator 
-flutter run
-```
-
-### 3. Dashboard (Optional)
-
+#### 2. Dashboard
 ```bash
 cd dashboard
 npm install
 npm run dev
 ```
 
-## 📡 Key API Endpoints
+#### 3. Mobile App
+```bash
+cd mobile
+flutter pub get
+flutter run
+```
+
+## 📡 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login → Token |
-| GET | `/api/auth/me` | Get current user profile |
-| POST | `/api/behavior-logs/` | Add a daily behavior log |
-| GET | `/api/behavior-logs/` | List all historical behavior logs |
-| POST | `/api/therapy/chat` | Chat with the AI therapist via GitHub Models |
-| GET | `/api/insights/` | Get AI-generated long-term insights |
+| POST | `/api/auth/login` | Login → JWT token |
+| GET | `/api/auth/me` | Get current user |
+| POST | `/api/behavior-logs/` | Create behavior log |
+| GET | `/api/behavior-logs/` | List behavior logs |
+| POST | `/api/predictions/predict` | Run stress prediction |
+| GET | `/api/predictions/` | List predictions |
+| GET | `/api/insights/` | Get AI insights |
+
+## 🧠 ML Model
+
+The system trains a **Random Forest** (or Gradient Boosting) regressor on synthetic behavioral data.
+
+**Inputs:** sleep_hours, screen_time, mood (1-10), exercise (bool)
+**Output:** Stress risk score (0-100)
+
+```bash
+cd backend
+python -m app.ml.train
+```
+
+## 🧪 Testing
+
+```bash
+cd backend
+pytest tests/ -v
+```
 
 ## 📁 Project Structure
 
 ```
-├── backend/           # FastAPI + ML + LLM Services
+├── backend/           # FastAPI + ML
 │   ├── app/
 │   │   ├── main.py
-│   │   ├── models/    # MongoDB Pydantic validation
-│   │   ├── schemas/   # API Schemas
+│   │   ├── models/    # SQLAlchemy
+│   │   ├── schemas/   # Pydantic
 │   │   ├── routers/   # API routes
-│   │   ├── services/  # Business logic & LLM APIs
+│   │   ├── services/  # Business logic
 │   │   └── ml/        # ML training & prediction
 │   └── tests/
-├── dashboard/         # React + TailwindCSS Web Admin
+├── dashboard/         # React + TailwindCSS
 │   └── src/
-├── mobile/            # Flutter 
+│       ├── pages/
+│       ├── components/
+│       └── services/
+├── mobile/            # Flutter
 │   └── lib/
-│       ├── core/      # AppTheme & Utils
-│       ├── screens/   # Views (Chat, Insights, History, Profile)
-│       └── services/  # API and Local Storage Services
+│       ├── screens/
+│       └── services/
 └── docker-compose.yml
 ```
 
