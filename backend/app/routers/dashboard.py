@@ -56,6 +56,7 @@ async def submit_daily_data(
         existing.screen_time = data.screen_time
         existing.mood = data.mood
         existing.exercise = data.exercise
+        existing.manually_logged = True
         db.commit()
         db.refresh(existing)
     else:
@@ -66,6 +67,7 @@ async def submit_daily_data(
             screen_time=data.screen_time,
             mood=data.mood,
             exercise=data.exercise,
+            manually_logged=True,
         )
         db.add(log)
         db.commit()
@@ -217,7 +219,7 @@ async def get_weekly_trends(
         .filter(
             BehaviorLog.user_id == current_user.user_id,
             BehaviorLog.date >= seven_days_ago,
-            BehaviorLog.sleep_hours > 0,  # Exclude auto-generated logs (sync-usage creates tentative logs with sleep=0)
+            BehaviorLog.manually_logged == True,  # Only include user-submitted logs
         )
         .order_by(BehaviorLog.date.asc())
         .all()

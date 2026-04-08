@@ -55,11 +55,11 @@ async def lifespan(app: FastAPI):
             
             # --- Behavior Logs Fallback ---
             existing_cols = [c['name'] for c in inspector.get_columns('behavior_logs')]
-            for col_name in ['social_time', 'entertainment_time', 'productivity_time']:
+            for col_name, col_type in [('social_time', 'FLOAT DEFAULT 0.0'), ('entertainment_time', 'FLOAT DEFAULT 0.0'), ('productivity_time', 'FLOAT DEFAULT 0.0'), ('manually_logged', 'BOOLEAN DEFAULT FALSE')]:
                 if col_name not in existing_cols:
                     try:
                         with engine.begin() as conn:
-                            conn.execute(text(f"ALTER TABLE behavior_logs ADD COLUMN {col_name} FLOAT DEFAULT 0.0"))
+                            conn.execute(text(f"ALTER TABLE behavior_logs ADD COLUMN {col_name} {col_type}"))
                             logger.info(f"✅ Added missing column: behavior_logs.{col_name}")
                     except Exception as e3:
                          logger.warning(f"⚠️ Failed to add behavior_logs.{col_name}: {e3}")

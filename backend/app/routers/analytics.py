@@ -121,7 +121,7 @@ async def get_weekly_trends(
     logs = db.query(BehaviorLog).filter(
         BehaviorLog.user_id == current_user.user_id,
         BehaviorLog.date >= seven_days_ago,
-        BehaviorLog.sleep_hours > 0,  # Exclude auto-generated logs (sync-usage creates tentative entries with sleep=0)
+        BehaviorLog.manually_logged == True,  # Only include user-submitted logs
     ).all()
 
     # Create a map of date -> log
@@ -175,7 +175,7 @@ async def seed_demo_data(
     new_logs = []
     new_preds = []
     
-    for i in range(8):  # 7 days + today
+    for i in range(7):  # 7 previous days only, NOT today
         d = start_date + timedelta(days=i)
         
         # Mock wellness data
@@ -190,7 +190,8 @@ async def seed_demo_data(
             sleep_hours=round(sleep, 1),
             screen_time=round(screen, 1),
             mood=mood,
-            exercise=ex
+            exercise=ex,
+            manually_logged=True,
         )
         new_logs.append(log)
         

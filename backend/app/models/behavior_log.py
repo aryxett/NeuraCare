@@ -13,6 +13,7 @@ class BehaviorLog(Base):
     screen_time = Column(Float, nullable=False)
     mood = Column(Integer, nullable=False)  # 1-10 scale
     exercise = Column(Boolean, default=False)
+    manually_logged = Column(Boolean, default=False, nullable=True)  # True when user submits via daily log form
     
     # Phase 5: App Usage Categories (in hours)
     social_time = Column(Float, nullable=True, default=0.0)
