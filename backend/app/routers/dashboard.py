@@ -56,7 +56,6 @@ async def submit_daily_data(
         existing.screen_time = data.screen_time
         existing.mood = data.mood
         existing.exercise = data.exercise
-        existing.manually_logged = True
         db.commit()
         db.refresh(existing)
     else:
@@ -67,7 +66,6 @@ async def submit_daily_data(
             screen_time=data.screen_time,
             mood=data.mood,
             exercise=data.exercise,
-            manually_logged=True,
         )
         db.add(log)
         db.commit()
@@ -212,18 +210,28 @@ async def get_weekly_trends(
     """
     Returns 7-day trend arrays for all tracked metrics + stress predictions.
     """
-    seven_days_ago = date.today() - timedelta(days=7)
+    today = date.today()
+    seven_days_ago = today - timedelta(days=7)
 
     logs = (
         db.query(BehaviorLog)
         .filter(
             BehaviorLog.user_id == current_user.user_id,
             BehaviorLog.date >= seven_days_ago,
-            BehaviorLog.manually_logged == True,  # Only include user-submitted logs
+            BehaviorLog.date < today,  # Only show completed days, not today
         )
         .order_by(BehaviorLog.date.asc())
         .all()
     )
+
+    # Include today only if user explicitly submitted (sleep_hours > 0 means real submission)
+    today_log = db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id,
+        BehaviorLog.date == today,
+        BehaviorLog.sleep_hours > 0,
+    ).first()
+    if today_log:
+        logs.append(today_log)
 
     preds = (
         db.query(Prediction)

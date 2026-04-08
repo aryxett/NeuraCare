@@ -121,8 +121,17 @@ async def get_weekly_trends(
     logs = db.query(BehaviorLog).filter(
         BehaviorLog.user_id == current_user.user_id,
         BehaviorLog.date >= seven_days_ago,
-        BehaviorLog.manually_logged == True,  # Only include user-submitted logs
+        BehaviorLog.date < today,  # Only show completed days, not today
     ).all()
+
+    # Include today only if user explicitly submitted (sleep_hours > 0 means real submission)
+    today_log = db.query(BehaviorLog).filter(
+        BehaviorLog.user_id == current_user.user_id,
+        BehaviorLog.date == today,
+        BehaviorLog.sleep_hours > 0,
+    ).first()
+    if today_log:
+        logs.append(today_log)
 
     # Create a map of date -> log
     log_map = {log.date: log for log in logs}
@@ -191,7 +200,6 @@ async def seed_demo_data(
             screen_time=round(screen, 1),
             mood=mood,
             exercise=ex,
-            manually_logged=True,
         )
         new_logs.append(log)
         
