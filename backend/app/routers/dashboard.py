@@ -35,6 +35,7 @@ router = APIRouter(prefix="/api", tags=["Dashboard"])
 
 @router.post("/submit-daily-data", response_model=StandardizedResponse[DailyDataResponse], status_code=status.HTTP_201_CREATED)
 async def submit_daily_data(
+    request: Request,
     data: DailyDataRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -88,6 +89,8 @@ async def submit_daily_data(
         .all()
     )
 
+    lang = request.headers.get("Accept-Language", "en")
+    
     insight_data = generate_insights(
         sleep_hours=data.sleep_hours,
         screen_time=data.screen_time,
@@ -96,6 +99,7 @@ async def submit_daily_data(
         stress_score=stress_score,
         recent_logs=recent_logs,
         use_llm=False, # Bypass heavy Azure OpenAI call to prevent 8-second UI load delays
+        language=lang,
     )
 
     message = insight_data["summary"]
@@ -124,6 +128,7 @@ async def submit_daily_data(
 
 @router.get("/dashboard-summary", response_model=StandardizedResponse[DashboardSummaryResponse])
 async def get_dashboard_summary(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -175,6 +180,7 @@ async def get_dashboard_summary(
     stress = latest_pred.stress_score if latest_pred else 0
 
     # ── New Therapy Assistant Metrics ──
+    lang = request.headers.get("Accept-Language", "en")
     wellness_score = calculate_wellness_score(
         sleep=avg_sleep, 
         screen=avg_screen, 
@@ -183,7 +189,7 @@ async def get_dashboard_summary(
     )
     
     burnout_risk = predict_burnout(logs)
-    triggers = detect_triggers(logs, preds)
+    triggers = detect_triggers(logs, preds, language=lang)
     
     # Background update profile
     update_behavioral_profile(db, current_user.user_id)

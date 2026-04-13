@@ -10,7 +10,8 @@ def generate_azure_insights(
     mood: int,
     exercise: bool,
     stress_score: float,
-    recent_logs: Optional[List] = None
+    recent_logs: Optional[List] = None,
+    language: str = "en"
 ) -> Dict[str, any]:
     """
     Generates empathetic, data-driven wellness insights using Azure OpenAI.
@@ -45,6 +46,9 @@ def generate_azure_insights(
             "Avoid generic advice. Focus on the relationship between their data points. "
             "CRITICAL: Do NOT use any emojis in your response. Your tone must be highly professional and clinical."
         )
+
+        if language == "hi":
+            system_prompt += "\n\nCRITICAL INSTRUCTION: You MUST translate and return the values of the JSON object entirely in natural conversational Hindi. The JSON KEYS must remain in English ('summary', 'ai_insights', 'recommendations')."
 
         headers = {
             "Authorization": f"Bearer {settings.AZURE_OPENAI_API_KEY}",

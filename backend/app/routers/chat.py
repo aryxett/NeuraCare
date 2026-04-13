@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, HTTPException
+from fastapi import APIRouter, Depends, status, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import uuid4
@@ -176,6 +176,7 @@ async def get_messages(
 
 @router.post("/conversations/{conversation_id}/messages", response_model=StandardizedResponse[SendMessageResponse])
 async def send_message(
+    request: Request,
     conversation_id: str,
     data: SendMessageRequest,
     current_user: User = Depends(get_current_user),
@@ -228,11 +229,13 @@ async def send_message(
 
     # 5. Generate AI reply (with fallback)
     try:
+        lang = request.headers.get("Accept-Language", "en")
         ai_text = generate_therapy_response(
             user_message=data.content, 
             history=context,
             current_mood=current_mood,
-            mental_state=mental_state
+            mental_state=mental_state,
+            language=lang
         )
     except Exception:
         ai_text = "I'm here to listen. Could you tell me more about how you're feeling?"

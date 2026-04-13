@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from app.models.mood_log import MoodLog
 from app.models.behavior_log import BehaviorLog
 
-def calculate_mental_state_radar(db: Session, user_id: int) -> dict:
+def calculate_mental_state_radar(db: Session, user_id: int, language: str = "en") -> dict:
     """
     Calculates mental state metrics (Mental Stability Index, Burnout Risk, Mood Stability)
     based on the user's logs over the last 7 days.
@@ -23,10 +23,15 @@ def calculate_mental_state_radar(db: Session, user_id: int) -> dict:
 
     # Default baseline if no data
     if not recent_moods and not recent_behaviors:
+        burnout_str = "Unknown"
+        mood_stab_str = "Unknown"
+        if language == "hi":
+            burnout_str = "अज्ञात"
+            mood_stab_str = "अज्ञात"
         return {
             "mental_stability_index": 50,
-            "burnout_risk_level": "Unknown",
-            "mood_stability": "Unknown",
+            "burnout_risk_level": burnout_str,
+            "mood_stability": mood_stab_str,
             "has_data": False
         }
 
@@ -52,6 +57,11 @@ def calculate_mental_state_radar(db: Session, user_id: int) -> dict:
             mood_stability_str = "Fluctuating"
         elif variance < 100:
             mood_stability_str = "Highly Stable"
+    
+    if language == "hi":
+        if mood_stability_str == "Stable": mood_stability_str = "स्थिर"
+        elif mood_stability_str == "Fluctuating": mood_stability_str = "अस्थिर"
+        elif mood_stability_str == "Highly Stable": mood_stability_str = "अत्यधिक स्थिर"
 
     # 3. Analyze Behaviors (Sleep & Screen Time)
     avg_sleep = 7.0
@@ -91,6 +101,11 @@ def calculate_mental_state_radar(db: Session, user_id: int) -> dict:
         burnout_risk = "High"
     elif mental_stability_index < 60 or avg_screen_time > 7:
         burnout_risk = "Moderate"
+
+    if language == "hi":
+        if burnout_risk == "Low": burnout_risk = "कम"
+        elif burnout_risk == "Moderate": burnout_risk = "मध्यम"
+        elif burnout_risk == "High": burnout_risk = "उच्च"
 
     return {
         "mental_stability_index": mental_stability_index,

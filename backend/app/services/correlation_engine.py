@@ -20,7 +20,7 @@ def _category_screen(hours: float) -> str:
     elif hours <= 6: return "3-6"
     else: return ">6"
 
-def compute_correlations(db: Session, user_id: int) -> List[Dict]:
+def compute_correlations(db: Session, user_id: int, language: str = "en") -> List[Dict]:
     """
     Computes correlations for Sleep vs Mood, Screen Time vs Stress, Activity vs Mood.
     Requires at least 5 total data points to generate any insights.
@@ -29,10 +29,17 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
     logs = db.query(BehaviorLog).filter(BehaviorLog.user_id == user_id).all()
     
     if len(logs) < 5:
+        title = "Insufficient Data"
+        expl = f"We need at least 5 days of logged data to analyze your behavioral correlations. You currently have {len(logs)}."
+        conf = "Low"
+        if language == "hi":
+            title = "अपर्याप्त डेटा"
+            expl = f"आपके व्यवहारिक सहसंबंधों का विश्लेषण करने के लिए कम से कम 5 दिनों का डेटा आवश्यक है। वर्तमान में आपके पास {len(logs)} दिन का डेटा है।"
+            conf = "कम"
         return [{
-            "title": "Insufficient Data",
-            "explanation": f"We need at least 5 days of logged data to analyze your behavioral correlations. You currently have {len(logs)}.",
-            "confidence_level": "Low"
+            "title": title,
+            "explanation": expl,
+            "confidence_level": conf
         }]
 
     # Fetch predictions to get stress score map
@@ -59,18 +66,30 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
             if low_sleep_avg < good_sleep_avg - 0.5:
                 num_samples = len(sleep_groups["<6"]) + len(good_sleep)
                 conf = "High" if num_samples >= 15 else "Moderate"
+                title = "Sleep & Mood"
+                expl = f"Lower sleep (<6h) correlates with reduced mood (avg {low_sleep_avg:.1f}/10 vs {good_sleep_avg:.1f}/10)."
+                if language == "hi":
+                    conf = "उच्च" if num_samples >= 15 else "मध्यम"
+                    title = "नींद और मनोदशा"
+                    expl = f"कम नींद (<6h) खराब मूड से संबंधित है (औसत {low_sleep_avg:.1f}/10 बनाम {good_sleep_avg:.1f}/10)।"
                 correlations.append({
-                    "title": "Sleep & Mood",
-                    "explanation": f"Lower sleep (<6h) correlates with reduced mood (avg {low_sleep_avg:.1f}/10 vs {good_sleep_avg:.1f}/10).",
+                    "title": title,
+                    "explanation": expl,
                     "confidence_level": conf
                 })
             elif low_sleep_avg > good_sleep_avg + 0.5:
                 # Paradoxical
                 num_samples = len(sleep_groups["<6"]) + len(good_sleep)
                 conf = "Moderate" if num_samples >= 10 else "Low"
+                title = "Sleep & Mood Profile"
+                expl = f"Paradoxically, mood averages higher ({low_sleep_avg:.1f}/10) on low sleep days."
+                if language == "hi":
+                    conf = "मध्यम" if num_samples >= 10 else "कम"
+                    title = "नींद और मनोदशा प्रोफ़ाइल"
+                    expl = f"कम नींद वाले दिनों में आपका मूड औसत से अधिक ({low_sleep_avg:.1f}/10) रहता है।"
                 correlations.append({
-                    "title": "Sleep & Mood Profile",
-                    "explanation": f"Paradoxically, mood averages higher ({low_sleep_avg:.1f}/10) on low sleep days.",
+                    "title": title,
+                    "explanation": expl,
                     "confidence_level": conf
                 })
 
@@ -91,9 +110,15 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
             if high_screen_avg > lower_screen_avg + 5:
                 num_samples = len(screen_groups[">6"]) + len(lower_screen)
                 conf = "High" if num_samples >= 15 else "Moderate"
+                title = "Screen Time & Stress"
+                expl = f"High screen time (>6h) correlates with higher stress ({high_screen_avg:.0f}% vs {lower_screen_avg:.0f}%)."
+                if language == "hi":
+                    conf = "उच्च" if num_samples >= 15 else "मध्यम"
+                    title = "स्क्रीन समय और तनाव"
+                    expl = f"अत्यधिक स्क्रीन समय (>6h) उच्च तनाव ({high_screen_avg:.0f}% बनाम {lower_screen_avg:.0f}%) से जुड़ा है।"
                 correlations.append({
-                    "title": "Screen Time & Stress",
-                    "explanation": f"High screen time (>6h) correlates with higher stress ({high_screen_avg:.0f}% vs {lower_screen_avg:.0f}%).",
+                    "title": title,
+                    "explanation": expl,
                     "confidence_level": conf
                 })
 
@@ -108,9 +133,15 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
         if avg_act > avg_no_act + 0.5:
             num_samples = len(act_mood) + len(no_act_mood)
             conf = "High" if num_samples >= 15 else "Moderate"
+            title = "Activity & Mood"
+            expl = f"Activity boosts your mood (avg {avg_act:.1f}/10 vs {avg_no_act:.1f}/10)."
+            if language == "hi":
+                conf = "उच्च" if num_samples >= 15 else "मध्यम"
+                title = "गतिविधि और मनोदशा"
+                expl = f"गतिविधि आपके मूड को बेहतर बनाती है (औसत {avg_act:.1f}/10 बनाम {avg_no_act:.1f}/10)।"
             correlations.append({
-                "title": "Activity & Mood",
-                "explanation": f"Activity boosts your mood (avg {avg_act:.1f}/10 vs {avg_no_act:.1f}/10).",
+                "title": title,
+                "explanation": expl,
                 "confidence_level": conf
             })
 
@@ -130,9 +161,15 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
             if high_soc_avg > lower_soc_avg + 5:
                 num_samples = len(social_stress[">2"]) + len(lower_soc)
                 conf = "High" if num_samples >= 15 else "Moderate"
+                title = "Social Media & Stress"
+                expl = f"Social media (>2h) correlates with higher stress ({high_soc_avg:.0f}% vs {lower_soc_avg:.0f}%)."
+                if language == "hi":
+                    conf = "उच्च" if num_samples >= 15 else "मध्यम"
+                    title = "सोशल मीडिया और तनाव"
+                    expl = f"सोशल मीडिया (>2h) उच्च तनाव ({high_soc_avg:.0f}% बनाम {lower_soc_avg:.0f}%) से जुड़ा है।"
                 correlations.append({
-                    "title": "Social Media & Stress",
-                    "explanation": f"Social media (>2h) correlates with higher stress ({high_soc_avg:.0f}% vs {lower_soc_avg:.0f}%).",
+                    "title": title,
+                    "explanation": expl,
                     "confidence_level": conf
                 })
 
@@ -140,31 +177,44 @@ def compute_correlations(db: Session, user_id: int) -> List[Dict]:
     prod_mood: Dict[str, List[float]] = {"<2": [], "2-5": [], ">5": []}
     for log in logs:
         # Avoid zeros showing as highly productive if missing logic defaults to 0
-        if log.productivity_time and log.productivity_time > 0:
+        if log.productivity_time is not None and log.productivity_time > 0:
             if log.productivity_time < 2: prod_mood["<2"].append(log.mood)
             elif log.productivity_time <= 5: prod_mood["2-5"].append(log.mood)
             else: prod_mood[">5"].append(log.mood)
-            
+
     if prod_mood[">5"]:
         high_prod_avg = sum(prod_mood[">5"]) / len(prod_mood[">5"])
         lower_prod = prod_mood["<2"] + prod_mood["2-5"]
         if lower_prod:
             lower_prod_avg = sum(lower_prod) / len(lower_prod)
-            if high_prod_avg > lower_prod_avg + 0.5:
+            if high_prod_avg > lower_prod_avg + 1.0:
                 num_samples = len(prod_mood[">5"]) + len(lower_prod)
                 conf = "High" if num_samples >= 15 else "Moderate"
+                title = "Productivity & Mood"
+                expl = f"High productivity (>5h) correlates with better mood ({high_prod_avg:.1f}/10 vs {lower_prod_avg:.1f}/10)."
+                if language == "hi":
+                    conf = "उच्च" if num_samples >= 15 else "मध्यम"
+                    title = "उत्पादकता और मनोदशा"
+                    expl = f"उच्च उत्पादकता (>5h) बेहतर मूड ({high_prod_avg:.1f}/10 बनाम {lower_prod_avg:.1f}/10) से जुड़ी है।"
                 correlations.append({
-                    "title": "Productivity & Mood",
-                    "explanation": f"Productivity (>5h) correlates with higher mood (avg {high_prod_avg:.1f}/10 vs {lower_prod_avg:.1f}/10).",
+                    "title": title,
+                    "explanation": expl,
                     "confidence_level": conf
                 })
 
     # If no correlations were found despite having >5 points
     if not correlations:
+        title = "No Strong Correlations Yet"
+        expl = "We analyzed your data but didn't find any statistically significant correlations between your sleep, screen time, activity, and your mood or stress. Keep logging to discover subtle trends!"
+        conf = "None"
+        if language == "hi":
+            title = "अभी तक कोई स्पष्ट सहसंबंध नहीं"
+            expl = "हमने आपके डेटा का विश्लेषण किया लेकिन आपकी नींद, स्क्रीन समय, गतिविधि और आपके मूड या तनाव के बीच कोई महत्वपूर्ण सहसंबंध नहीं मिला। कुछ समय और लॉग करें!"
+            conf = "कोई नहीं"
         return [{
-            "title": "No Strong Correlations Yet",
-            "explanation": "We analyzed your data but didn't find any statistically significant correlations between your sleep, screen time, activity, and your mood or stress. Keep logging to discover subtle trends!",
-            "confidence_level": "None"
+            "title": title,
+            "explanation": expl,
+            "confidence_level": conf
         }]
 
     return correlations

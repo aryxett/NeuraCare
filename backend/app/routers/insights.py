@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/insights", tags=["Insights"])
 
 @router.get("/", response_model=StandardizedResponse[InsightResponse])
 async def get_insights(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -40,13 +41,15 @@ async def get_insights(
     )
 
     # Generate comprehensive insights
+    lang = request.headers.get("Accept-Language", "en")
     insight_data = generate_insights(
         sleep_hours=latest.sleep_hours,
         screen_time=latest.screen_time,
         mood=latest.mood,
         exercise=latest.exercise,
         stress_score=stress_score,
-        recent_logs=recent_logs
+        recent_logs=recent_logs,
+        language=lang
     )
 
     return {"success": True, "data": InsightResponse(**insight_data)}

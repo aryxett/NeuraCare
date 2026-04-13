@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from datetime import date, timedelta, datetime
 import random
@@ -26,6 +26,7 @@ router = APIRouter(prefix="/api/analytics", tags=["Phase 4 - Analytics"])
 
 @router.get("/dashboard-summary", response_model=StandardizedResponse[Phase4DashboardSummary])
 async def get_dashboard_summary(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -87,13 +88,15 @@ async def get_dashboard_summary(
     ).order_by(BehaviorLog.date.desc()).all()
 
     # Use Insight Engine for deeper analysis
+    lang = request.headers.get("Accept-Language", "en")
     insight_data = generate_insights(
         sleep_hours=current_sleep,
         screen_time=current_screen,
         mood=int(current_mood),
         exercise=latest_log.exercise,
         stress_score=float(stress),
-        recent_logs=recent_logs
+        recent_logs=recent_logs,
+        language=lang
     )
 
     result = Phase4DashboardSummary(
@@ -248,21 +251,25 @@ async def clear_history(
 
 @router.get("/life-patterns", response_model=StandardizedResponse[LifePatternsResponse])
 async def get_life_patterns(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Phase 2: Life Pattern Discovery — detects hidden behavioral correlations."""
-    result = discover_patterns(db, current_user.user_id)
+    lang = request.headers.get("Accept-Language", "en")
+    result = discover_patterns(db, current_user.user_id, language=lang)
     return {"success": True, "data": result}
     
 
 @router.get("/mental-state-radar")
 async def get_mental_state_radar(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Phase 4: Mental State Radar metrics based on last 7 days."""
-    result = calculate_mental_state_radar(db, current_user.user_id)
+    lang = request.headers.get("Accept-Language", "en")
+    result = calculate_mental_state_radar(db, current_user.user_id, language=lang)
     return {"success": True, "data": result}
 
 from app.schemas.correlation import CorrelationResponse
@@ -270,11 +277,13 @@ from app.services.correlation_engine import compute_correlations
 
 @router.get("/correlations", response_model=StandardizedResponse[CorrelationResponse])
 async def get_correlations(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Phase 3: Behavioral Correlation Engine — detects statistical links between behavior & mood/stress."""
-    correlations_data = compute_correlations(db, current_user.user_id)
+    lang = request.headers.get("Accept-Language", "en")
+    correlations_data = compute_correlations(db, current_user.user_id, language=lang)
     return {"success": True, "data": CorrelationResponse(correlations=correlations_data)}
 
 from pydantic import BaseModel
@@ -330,10 +339,12 @@ from app.services.behavioral_intelligence import compute_full_intelligence
 
 @router.get("/behavioral-intelligence")
 async def get_behavioral_intelligence(
+    request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Advanced Behavioral Intelligence — returns risk scores, enhanced correlations,
     emerging patterns, drift alerts, interventions, and weekly summary."""
-    result = compute_full_intelligence(db, current_user.user_id)
+    lang = request.headers.get("Accept-Language", "en")
+    result = compute_full_intelligence(db, current_user.user_id, language=lang)
     return {"success": True, "data": result}

@@ -55,7 +55,8 @@ def generate_therapy_response(
     user_message: str, 
     history: List[Dict[str, str]] = None,
     current_mood: str = None,
-    mental_state: Dict = None
+    mental_state: Dict = None,
+    language: str = "en"
 ) -> str:
     """
     Generates a supportive AI therapy response using Azure OpenAI.
@@ -95,6 +96,9 @@ def generate_therapy_response(
 
         if mental_state:
             system_prompt += f"\n\nContext for AI: The user's recent automated mental state metrics are: {mental_state}. Use this implicitly to guide your support."
+
+        if language == "hi":
+            system_prompt += "\n\nCRITICAL INSTRUCTION: You MUST reply entirely in natural conversational Hindi. All your responses, reflections, and analyses MUST be in Hindi. Do not use English."
 
         # Build the messages array
         messages = [{"role": "system", "content": system_prompt}]

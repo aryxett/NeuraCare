@@ -59,7 +59,7 @@ def predict_burnout(logs: List[BehaviorLog]) -> float:
     
     return float(min(100, mood_decline + screen_weight + sleep_weight))
 
-def detect_triggers(logs: List[BehaviorLog], predictions: List[Prediction]) -> List[str]:
+def detect_triggers(logs: List[BehaviorLog], predictions: List[Prediction], language: str = "en") -> List[str]:
     """
     Identifies correlations between behaviors and high stress scores.
     """
@@ -73,13 +73,19 @@ def detect_triggers(logs: List[BehaviorLog], predictions: List[Prediction]) -> L
     
     common = set(high_stress_dates).intersection(set(high_screen_dates))
     if len(common) >= 2:
-        triggers.append("High screen time (exceeding 9 hours) is highly correlated with your peak stress levels.")
+        msg = "High screen time (exceeding 9 hours) is highly correlated with your peak stress levels."
+        if language == "hi":
+            msg = "उच्च स्क्रीन समय (9 घंटे से अधिक) आपके अधिकतम तनाव के स्तर से काफी हद तक जुड़ा हुआ है।"
+        triggers.append(msg)
         
     # Late night activity (if we had timestamps, but we only have daily logs)
     # Check if low sleep leads to low mood next day
     for i in range(len(logs) - 1):
         if logs[i].sleep_hours < 5 and logs[i+1].mood < 4:
-            triggers.append("Insufficient sleep consistently leads to a significant mood drop the following day.")
+            msg = "Insufficient sleep consistently leads to a significant mood drop the following day."
+            if language == "hi":
+                msg = "अपर्याप्त नींद के कारण लगातार अगले दिन मूड में भारी गिरावट आती है।"
+            triggers.append(msg)
             break
             
     return triggers
