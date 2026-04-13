@@ -69,12 +69,12 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         });
         _animController.forward(from: 0.0);
         
-        // Show daily mood pop up automatically if false
-        if (!_hasCheckedInMood) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _showDailyMoodPopup();
-          });
-        }
+        // Show daily mood pop up automatically if false (Disabled for now)
+        // if (!_hasCheckedInMood) {
+        //   WidgetsBinding.instance.addPostFrameCallback((_) {
+        //     _showDailyMoodPopup();
+        //   });
+        // }
       }
     } catch (e) {
       if (mounted) {
