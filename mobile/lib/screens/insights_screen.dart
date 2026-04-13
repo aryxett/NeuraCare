@@ -490,7 +490,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                           Row(children: [
                             Text(metric.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textP(context))),
                             const Spacer(),
-                            _buildConfidenceBadge(strength)),
+                            _buildConfidenceBadge(strength),
                           ]),
                           SizedBox(height: 4),
                           Text(insight, style: GoogleFonts.dmSans(color: AppTheme.textS(context), fontSize: 12, height: 1.4)),
