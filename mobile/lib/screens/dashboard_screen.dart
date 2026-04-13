@@ -3,10 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../services/api_service.dart';
 import '../core/app_theme.dart';
+import '../core/localization.dart';
+import 'log_entry_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(bool) onStressUpdate;
-  const DashboardScreen({super.key, required this.onStressUpdate});
+  final VoidCallback? onLogSubmitted;
+  
+  const DashboardScreen({
+    super.key, 
+    required this.onStressUpdate,
+    this.onLogSubmitted,
+  });
 
   @override
   DashboardScreenState createState() => DashboardScreenState();
@@ -60,6 +68,13 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           _loading = false;
         });
         _animController.forward(from: 0.0);
+        
+        // Show daily mood pop up automatically if false
+        if (!_hasCheckedInMood) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _showDailyMoodPopup();
+          });
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -67,6 +82,69 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         _animController.forward(from: 0.0);
       }
     }
+  }
+
+  void _showDailyMoodPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: AppTheme.card(context),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Daily Check-in',
+                style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textP(context)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'How are you feeling right now?',
+                style: AppTheme.labelText,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.center,
+                children: [
+                  'Calm', 'Confident', 'Sad', 'Tired', 'Energetic', 'Anxious'
+                ].map((mood) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _onMoodSelected(mood);
+                    },
+                    child: Container(
+                      width: 100,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg(context),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.border(context), width: 1),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        mood,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textP(context),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _onMoodSelected(String value) async {
@@ -150,14 +228,13 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           slivers: [
-            // ── Mood Check-In ──
-            if (!_hasCheckedInMood)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: _buildMoodCheckInCard(),
-                ),
+            // ── What's New Banner (Mood Tracker) ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: _buildWhatsNewBanner(),
               ),
+            ),
 
             // ── Header ──
             SliverToBoxAdapter(
@@ -166,10 +243,10 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Overview', style: AppTheme.headingLarge),
+                    Text('Overview'.tr(context), style: AppTheme.headingLarge),
                     SizedBox(height: 4),
                     Text(
-                      'Your cognitive digital twin analysis',
+                      'Your cognitive digital twin analysis'.tr(context),
                       style: AppTheme.labelText,
                     ),
                   ],
@@ -185,7 +262,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                   children: [
                     Expanded(
                       child: _buildRingCard(
-                        label: 'Wellness',
+                        label: 'Wellness'.tr(context),
                         value: wellnessValue,
                         maxValue: 100,
                         centerText: '${wellnessValue.toInt()}',
@@ -196,11 +273,11 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                     SizedBox(width: 14),
                     Expanded(
                       child: _buildRingCard(
-                        label: 'AI Stress',
+                        label: 'AI Stress'.tr(context),
                         value: stressValue,
                         maxValue: 100,
                         centerText: '${stressValue.toInt()}%',
-                        subText: riskLabel,
+                        subText: riskLabel.tr(context),
                         progressColor: _stressColor(stressValue),
                         subTextColor: _stressColor(stressValue),
                       ),
@@ -220,21 +297,21 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                       icon: Icons.nightlight_round,
                       iconColor: AppTheme.accentBlue,
                       value: '${avgSleepVal.toStringAsFixed(1)}h',
-                      label: 'Sleep',
+                      label: 'Sleep'.tr(context),
                     )),
                     SizedBox(width: 10),
                     Expanded(child: _buildQuickStatCard(
                       icon: Icons.phone_android_rounded,
                       iconColor: AppTheme.accentPurple,
                       value: '${avgScreenVal.toStringAsFixed(1)}h',
-                      label: 'Screen',
+                      label: 'Screen'.tr(context),
                     )),
                     SizedBox(width: 10),
                     Expanded(child: _buildQuickStatCard(
                       icon: Icons.sentiment_satisfied_alt_rounded,
                       iconColor: AppTheme.accentGreen,
                       value: avgMoodVal.toStringAsFixed(1),
-                      label: 'Avg Mood',
+                      label: 'Mood'.tr(context),
                     )),
                   ],
                 ),
@@ -249,26 +326,15 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
               ),
             ),
 
-            // ── Section 4: Detected Patterns ──
-            if (triggers.isNotEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                  child: Text('Detected Patterns', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
-                ),
+            // ── Section 4: Daily Plan ──
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 30),
+                child: _buildDailyPlan(),
               ),
-            if (triggers.isNotEmpty)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildPatternCard(_stripEmoji(triggers[index].toString())),
-                    childCount: triggers.length,
-                  ),
-                ),
-              )
-            else
-              const SliverToBoxAdapter(child: SizedBox(height: 100)),
+            ),
+
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
           ],
         ),
       ),
@@ -278,6 +344,213 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
   // ──────────────────────────────────────────────────────────────────
   //  UI HELPERS
   // ──────────────────────────────────────────────────────────────────
+
+  Widget _buildDailyPlan() {
+    final isDark = AppTheme.isDark(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Section Header ──
+        Row(
+          children: [
+            Text('My plan'.tr(context), style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+            const Spacer(),
+            Icon(Icons.person_outline, color: AppTheme.textS(context), size: 24),
+          ],
+        ),
+        const SizedBox(height: 20),
+
+        // ── Morning ──
+        _buildPlanTimeTitle('Morning'.tr(context), Icons.wb_twilight_rounded, AppTheme.accentBlue, isFirst: true),
+        _buildPlanItemRow(
+          tag: 'Breath'.tr(context), tagIcon: Icons.air_rounded, tagColor: Colors.lightBlueAccent,
+          title: 'Anxiety'.tr(context), subtitle: '2 min meditation'.tr(context),
+          gradientColors: isDark ? [const Color(0xFF0F172A), const Color(0xFF2E1065)] : [Colors.blue.shade50, Colors.purple.shade50],
+          bgIcon: Icons.self_improvement_rounded, bgIconColor: Colors.purpleAccent.withValues(alpha: 0.3),
+        ),
+        _buildPlanItemRow(
+          tag: 'Articles'.tr(context), tagIcon: Icons.article_outlined, tagColor: Colors.greenAccent,
+          title: '5 types of self-love language'.tr(context), subtitle: '2 min read'.tr(context),
+          gradientColors: isDark ? [const Color(0xFF064E3B).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.green.shade50, Colors.blue.shade50],
+          bgIcon: Icons.menu_book_rounded, bgIconColor: Colors.greenAccent.withValues(alpha: 0.2),
+          isLastInSection: true,
+        ),
+
+        // ── Day ──
+        _buildPlanTimeTitle('Day'.tr(context), Icons.light_mode_outlined, Colors.amberAccent),
+        _buildPlanItemRow(
+          tag: 'Meditation'.tr(context), tagIcon: Icons.spa_outlined, tagColor: Colors.orangeAccent,
+          title: 'Daily affirmation'.tr(context), subtitle: '10 min'.tr(context),
+          gradientColors: isDark ? [const Color(0xFF1E3A8A).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.amber.shade50, Colors.blue.shade50],
+          bgIcon: Icons.psychology_rounded, bgIconColor: Colors.orangeAccent.withValues(alpha: 0.2),
+          isLastInSection: true,
+        ),
+
+        // ── Evening ──
+        _buildPlanTimeTitle('Evening'.tr(context), Icons.nights_stay_outlined, Colors.indigoAccent),
+        _buildPlanItemRow(
+          tag: 'Sleep Stories'.tr(context), tagIcon: Icons.bedtime_outlined, tagColor: Colors.indigoAccent,
+          title: 'Adventures of Huckleberry Finn'.tr(context), subtitle: '16 min'.tr(context),
+          gradientColors: isDark ? [const Color(0xFF0A0F24), const Color(0xFF1E1B4B)] : [Colors.indigo.shade50, Colors.purple.shade50],
+          bgIcon: Icons.auto_stories_rounded, bgIconColor: Colors.indigoAccent.withValues(alpha: 0.3),
+        ),
+        _buildPlanItemRow(
+          tag: 'Sleep Sounds'.tr(context), tagIcon: Icons.music_note_rounded, tagColor: Colors.pinkAccent,
+          title: 'Relax music'.tr(context), subtitle: 'Unwind and relax'.tr(context),
+          gradientColors: isDark ? [const Color(0xFF1E1B4B).withValues(alpha: 0.5), const Color(0xFF4A044E)] : [Colors.pink.shade50, Colors.purple.shade50],
+          bgIcon: Icons.headphones_rounded, bgIconColor: Colors.pinkAccent.withValues(alpha: 0.15),
+          isVeryLast: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanTimeTitle(String title, IconData icon, Color color, {bool isFirst = false}) {
+    final isDark = AppTheme.isDark(context);
+    final lineColor = isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.15);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 28,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Line extending downwards only (no upward connection to previous section)
+                Positioned(
+                  top: 16,
+                  bottom: 0,
+                  width: 2,
+                  child: CustomPaint(painter: _DottedLinePainter(color: lineColor)),
+                ),
+                // Section Icon
+                Container(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Icon(icon, size: 20, color: color),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(title, style: GoogleFonts.dmSans(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textS(context))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlanItemRow({
+    required String tag, required IconData tagIcon, required Color tagColor,
+    required String title, required String subtitle,
+    required List<Color> gradientColors,
+    required IconData bgIcon, required Color bgIconColor,
+    bool isLastInSection = false,
+    bool isVeryLast = false,
+  }) {
+    final isDark = AppTheme.isDark(context);
+    final lineColor = isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.15);
+    // Should we show the line below the circle?
+    final bool showLineBelow = !isLastInSection && !isVeryLast;
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Timeline
+          SizedBox(
+            width: 28,
+            child: Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                // Line from top to circle (always present)
+                Positioned(
+                  top: 0,
+                  height: 48,
+                  width: 2,
+                  child: CustomPaint(painter: _DottedLinePainter(color: lineColor)),
+                ),
+                // Line from circle to bottom (only if not last in section)
+                if (showLineBelow)
+                  Positioned(
+                    top: 54,
+                    bottom: 0,
+                    width: 2,
+                    child: CustomPaint(painter: _DottedLinePainter(color: lineColor)),
+                  ),
+                  
+                // Circle marker
+                Positioned(
+                  top: 42,
+                  child: Container(
+                    width: 12, height: 12,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppTheme.textM(context), width: 2),
+                      color: AppTheme.bg(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Plan Card
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                gradient: LinearGradient(
+                  colors: gradientColors,
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                border: Border.all(color: AppTheme.border(context), width: 0.3),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -15, bottom: -15,
+                      child: Icon(bgIcon, size: 100, color: bgIconColor),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(tagIcon, size: 14, color: tagColor),
+                              const SizedBox(width: 6),
+                              Text(tag, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.w600, color: tagColor)),
+                              const Spacer(),
+                              Icon(Icons.chevron_right_rounded, size: 18, color: AppTheme.textS(context)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Text(title, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+                          const SizedBox(height: 4),
+                          Text(subtitle, style: GoogleFonts.dmSans(fontSize: 13, color: AppTheme.textS(context).withValues(alpha: 0.8))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   String _stripEmoji(String text) {
     if (text.isEmpty) return text;
@@ -381,7 +654,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Burnout Risk', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+              Text('Burnout Risk'.tr(context), style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
               Text('${burnoutValue.toInt()}%', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.accentBlue)),
             ],
           ),
@@ -398,8 +671,8 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           SizedBox(height: 12),
           Text(
             burnoutValue > 60
-                ? 'High risk detected. Consider reducing cognitive load.'
-                : 'Your behavioral patterns look well-balanced.',
+                ? 'High risk detected. Consider reducing cognitive load.'.tr(context)
+                : 'Your behavioral patterns look well-balanced.'.tr(context),
             style: AppTheme.mutedText.copyWith(height: 1.5),
           ),
         ],
@@ -436,108 +709,83 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     );
   }
 
-  // ── Mood Check-In Card ──
-  Widget _buildMoodCheckInCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: AppTheme.cardDecorationFor(context),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentBlue.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.wb_sunny_rounded, color: AppTheme.accentBlue, size: 16),
-              ),
-              SizedBox(width: 10),
-              Text('How are you feeling today?', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
-            ],
-          ),
-          SizedBox(height: 14),
-          if (_submittingMood)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(width: 14, height: 14, child: CircularProgressIndicator(color: AppTheme.accentBlue, strokeWidth: 2)),
-                    SizedBox(width: 8),
-                    Text('Submitting...', style: TextStyle(color: AppTheme.accentBlue, fontSize: 13, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-            )
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final chipWidth = (constraints.maxWidth - 12) / 3;
-                return Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    _buildMoodChip('calm', 'Calm', AppTheme.accentGreen, chipWidth),
-                    _buildMoodChip('happy', 'Happy', AppTheme.accentBlue, chipWidth),
-                    _buildMoodChip('motivated', 'Motivated', AppTheme.accentPurple, chipWidth),
-                    _buildMoodChip('neutral', 'Neutral', AppTheme.textS(context), chipWidth),
-                    _buildMoodChip('stressed', 'Stressed', AppTheme.accentRed, chipWidth),
-                    _buildMoodChip('tired', 'Tired', AppTheme.accentAmber, chipWidth),
-                  ],
-                );
-              },
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMoodChip(String value, String label, Color color, double chipWidth) {
-    final isSelected = _selectedMood == value;
-
-    return SizedBox(
-      width: chipWidth,
-      height: 36,
-      child: AnimatedScale(
-        scale: isSelected ? 1.08 : 1.0,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOutBack,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha: 0.25) : color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? color : color.withValues(alpha: 0.2),
-              width: isSelected ? 1.5 : 0.5,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: _submittingMood ? null : () => _onMoodSelected(value),
-              child: Center(
-                child: Text(
-                  label,
-                  style: GoogleFonts.dmSans(
-                    color: isSelected ? color : color.withValues(alpha: 0.85),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
+  // ── What's New Banner ──
+  Widget _buildWhatsNewBanner() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.star_outline_rounded, color: AppTheme.accentAmber, size: 20),
+            SizedBox(width: 8),
+            Text('What\'s new'.tr(context), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textP(context))),
+          ],
+        ),
+        SizedBox(height: 12),
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => LogEntryScreen(onSubmitted: () {
+                _load();
+                widget.onLogSubmitted?.call();
+              })));
+            },
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF13192B) : const Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.border(context), width: 0.5),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.umbrella_rounded, color: const Color(0xFFC084FC), size: 16),
+                          SizedBox(width: 8),
+                          Text('Mood tracker'.tr(context), style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFFC084FC))),
+                          SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFC084FC).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text('Beta', style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFC084FC))),
+                          )
+                        ],
+                      ),
+                      Icon(Icons.chevron_right_rounded, color: AppTheme.textS(context), size: 20),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Text('Check in with your mood'.tr(context), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textP(context))),
+                  SizedBox(height: 4),
+                  Text(
+                    'Increase emotional awareness by tracking your moods'.tr(context),
+                    style: AppTheme.mutedText.copyWith(height: 1.4),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
-
   // ── Shimmer Loading State ──
   Widget _buildShimmerLoading() {
     return SingleChildScrollView(
@@ -605,18 +853,18 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
             children: [
               Icon(Icons.cloud_off_rounded, size: 48, color: AppTheme.textM(context)),
               SizedBox(height: 16),
-              Text('No Analytics Data', style: AppTheme.headingMedium),
+              Text('No Analytics Data'.tr(context), style: AppTheme.headingMedium),
               SizedBox(height: 8),
               if (_error != null) ...[
                 Text(
-                  'Error: $_error',
+                  '${'Error'.tr(context)}: $_error',
                   style: AppTheme.mutedText.copyWith(color: AppTheme.accentRed),
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 8),
               ],
               Text(
-                'Submit your first daily log to generate insights.',
+                'Submit your first daily log to generate insights.'.tr(context),
                 style: AppTheme.mutedText,
                 textAlign: TextAlign.center,
               ),
@@ -624,7 +872,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
               ElevatedButton.icon(
                 icon: Icon(Icons.refresh_rounded, size: 18),
                 onPressed: _load,
-                label: Text('Refresh Data'),
+                label: Text('Refresh Data'.tr(context)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentBlue.withValues(alpha: 0.12),
                   foregroundColor: AppTheme.accentBlue,
@@ -639,4 +887,37 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
       ),
     );
   }
+}
+
+// ─── Dotted Line Painter ───────────────────────────────────────────
+class _DottedLinePainter extends CustomPainter {
+  final Color color;
+  _DottedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    const dashHeight = 4.0;
+    const dashSpace = 4.0;
+    double startY = 0.0;
+
+    // Center the dotted line horizontally within its bounding box
+    final dx = size.width / 2;
+
+    while (startY < size.height) {
+      canvas.drawLine(
+        Offset(dx, startY),
+        Offset(dx, (startY + dashHeight).clamp(0.0, size.height)),
+        paint,
+      );
+      startY += dashHeight + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

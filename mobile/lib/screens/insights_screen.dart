@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:percent_indicator/circular_percent_indicator.dart';
 import '../services/api_service.dart';
 import '../core/app_theme.dart';
+import '../core/localization.dart';
 
 class InsightsScreen extends StatefulWidget {
   const InsightsScreen({super.key});
@@ -75,7 +76,10 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         _animController.forward(from: 0.0);
       }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() { _error = e.toString(); _loading = false; });
+        _animController.forward(from: 0.0);
+      }
     }
   }
 
@@ -117,6 +121,8 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
     final recs = recsRaw.map(_stripEmoji).toList();
     final aiSummary = _stripEmoji(_insightsData!['summary'] ?? '');
     final stressScore = (_dashboardData?['stress_score'] as num?)?.toInt() ?? 0;
+    final triggersRaw = List<dynamic>.from(_dashboardData?['triggers'] ?? []);
+    final triggers = triggersRaw.map((t) => _stripEmoji(t.toString())).toList();
     
     final sleepList = List<num>.from(_trendsData?['sleep'] ?? []).map((e) => e.toDouble()).toList();
     final screenList = List<num>.from(_trendsData?['screen_time'] ?? []).map((e) => e.toDouble()).toList();
@@ -140,23 +146,25 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
     final forecastInsights = (forecast?['insights'] as List?)?.cast<String>() ?? [];
     final whatIf = forecast?['what_if'] as String? ?? '';
 
-    return RefreshIndicator(
-      onRefresh: () async => _load(),
-      color: AppTheme.accentBlue,
-      backgroundColor: AppTheme.bg(context),
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async => _load(),
+        color: AppTheme.accentBlue,
+        backgroundColor: AppTheme.bg(context),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: Padding(
-                padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
+                padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // ── Header ──
-                    Text('Insights', style: AppTheme.headingLarge),
+                    Center(child: Text('Insights'.tr(context), style: AppTheme.headingLarge)),
                     SizedBox(height: 20),
 
                     // ── Top Summary Card ──
@@ -173,7 +181,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                     else if (_selectedTab == 1)
                       _buildBehaviorTab(sleepImpact, screenImpact, moodImpact, stability, focus, burnoutRisk.toString())
                     else if (_selectedTab == 2)
-                      _buildInsightsTab(insights, recs, aiSummary)
+                      _buildInsightsTab(insights, recs, aiSummary, triggers)
                     else
                       _buildWeeklyTab(sleepList, moodList, screenList),
                   ],
@@ -182,6 +190,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -252,7 +261,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             children: [
               // Stress Tomorrow
               Expanded(child: _buildMetricBox(
-                label: 'Stress Tomorrow',
+                label: 'Stress Tomorrow'.tr(context),
                 value: '$stressScore%',
                 valueColor: rColor,
                 badge: risk,
@@ -261,14 +270,14 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               SizedBox(width: 10),
               // Stability
               Expanded(child: _buildMetricBox(
-                label: 'Stability',
+                label: 'Stability'.tr(context),
                 value: '$stability',
                 valueColor: AppTheme.accentAmber,
               )),
               SizedBox(width: 10),
               // Focus
               Expanded(child: _buildMetricBox(
-                label: 'Focus',
+                label: 'Focus'.tr(context),
                 value: '$focus',
                 valueColor: AppTheme.accentAmber,
               )),
@@ -295,7 +304,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                   decoration: BoxDecoration(color: burnColor, shape: BoxShape.circle),
                 ),
                 SizedBox(width: 8),
-                Text('Burnout Risk: $burnout', style: GoogleFonts.dmSans(color: burnColor, fontSize: 12, fontWeight: FontWeight.w600)),
+                Text('${"Burnout Risk".tr(context)}: ${burnout.toString().tr(context)}', style: GoogleFonts.dmSans(color: burnColor, fontSize: 12, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -333,7 +342,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
   }
 
   Widget _buildTabBar() {
-    const tabs = ['Forecast', 'Behavior', 'Insights', 'Weekly'];
+    final tabs = ['Forecast'.tr(context), 'Behavior'.tr(context), 'Insights'.tr(context), 'Weekly'.tr(context)];
     return Container(
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
@@ -387,7 +396,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               margin: const EdgeInsets.only(bottom: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(color: rColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(6)),
-              child: Text(risk, style: GoogleFonts.dmSans(color: rColor, fontSize: 11, fontWeight: FontWeight.w600)),
+              child: Text(risk.toString().tr(context), style: GoogleFonts.dmSans(color: rColor, fontSize: 11, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -397,7 +406,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
 
         // Why this prediction
         if (forecastInsights.isNotEmpty) ...[
-          Text('Why this prediction', style: GoogleFonts.outfit(color: AppTheme.textP(context), fontSize: 14, fontWeight: FontWeight.w600)),
+          Text('Why this prediction'.tr(context), style: GoogleFonts.outfit(color: AppTheme.textP(context), fontSize: 14, fontWeight: FontWeight.w600)),
           SizedBox(height: 10),
           ...forecastInsights.map((insight) => Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -430,7 +439,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                   children: [
                     Icon(Icons.auto_fix_high_rounded, color: AppTheme.accentPurple, size: 16),
                     SizedBox(width: 8),
-                    Text('What if...', style: GoogleFonts.outfit(color: AppTheme.accentPurple, fontSize: 12, fontWeight: FontWeight.w600)),
+                    Text('What if...'.tr(context), style: GoogleFonts.outfit(color: AppTheme.accentPurple, fontSize: 12, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 SizedBox(height: 8),
@@ -452,7 +461,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
       children: [
         // ── Behavioral Shifts ──
         if (drifts.isNotEmpty) ...[
-          _buildSectionLabel('BEHAVIORAL SHIFTS'),
+          _buildSectionLabel('BEHAVIORAL SHIFTS'.tr(context)),
           SizedBox(height: 10),
           ...drifts.map((d) {
             final isUp = d['direction'] == 'up';
@@ -479,9 +488,9 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(children: [
-                            Text(metric, style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textP(context))),
+                            Text(metric.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textP(context))),
                             const Spacer(),
-                            _buildConfidenceBadge(strength),
+                            _buildConfidenceBadge(strength)),
                           ]),
                           SizedBox(height: 4),
                           Text(insight, style: GoogleFonts.dmSans(color: AppTheme.textS(context), fontSize: 12, height: 1.4)),
@@ -497,17 +506,17 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         ],
 
         // ── Impact Cards ──
-        _buildSectionLabel('BEHAVIORAL IMPACT'),
+        _buildSectionLabel('BEHAVIORAL IMPACT'.tr(context)),
         SizedBox(height: 10),
-        _buildBehaviorImpactCard(Icons.nightlight_round, 'Sleep Impact', sleepImpact, AppTheme.accentPurple),
+        _buildBehaviorImpactCard(Icons.nightlight_round, 'Sleep Impact'.tr(context), sleepImpact, AppTheme.accentPurple),
         SizedBox(height: 10),
-        _buildBehaviorImpactCard(Icons.phone_android_rounded, 'Screen Impact', screenImpact, AppTheme.accentBlue),
+        _buildBehaviorImpactCard(Icons.phone_android_rounded, 'Screen Impact'.tr(context), screenImpact, AppTheme.accentBlue),
         SizedBox(height: 10),
-        _buildBehaviorImpactCard(Icons.mood_rounded, 'Mood Stability', moodImpact, AppTheme.accentGreen),
+        _buildBehaviorImpactCard(Icons.mood_rounded, 'Mood Stability'.tr(context), moodImpact, AppTheme.accentGreen),
         SizedBox(height: 18),
 
         // ── Risk Assessment Gauges ──
-        _buildSectionLabel('RISK ASSESSMENT'),
+        _buildSectionLabel('RISK ASSESSMENT'.tr(context)),
         SizedBox(height: 10),
         _buildCardContainer(
           child: Column(
@@ -515,8 +524,8 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildGauge('Stability', stability, stability >= 70 ? AppTheme.accentGreen : (stability >= 40 ? AppTheme.accentAmber : AppTheme.accentRed)),
-                  _buildGauge('Focus', focus, focus >= 70 ? AppTheme.accentBlue : (focus >= 40 ? AppTheme.accentAmber : AppTheme.accentRed)),
+                  _buildGauge('Stability'.tr(context), stability, stability >= 70 ? AppTheme.accentGreen : (stability >= 40 ? AppTheme.accentAmber : AppTheme.accentRed)),
+                  _buildGauge('Focus'.tr(context), focus, focus >= 70 ? AppTheme.accentBlue : (focus >= 40 ? AppTheme.accentAmber : AppTheme.accentRed)),
                 ],
               ),
               SizedBox(height: 14),
@@ -532,7 +541,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                   children: [
                     Icon(Icons.local_fire_department_rounded, color: burnColor, size: 16),
                     SizedBox(width: 6),
-                    Text('Burnout Risk: $burnout', style: GoogleFonts.dmSans(color: burnColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text('${'Burnout Risk'.tr(context)}: ${burnout.tr(context)}', style: GoogleFonts.dmSans(color: burnColor, fontWeight: FontWeight.w600, fontSize: 13)),
                   ],
                 ),
               ),
@@ -544,7 +553,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
   }
 
   // ── TAB 2: Insights ──
-  Widget _buildInsightsTab(List<String> insights, List<String> recs, String aiSummary) {
+  Widget _buildInsightsTab(List<String> insights, List<String> recs, String aiSummary, List<String> triggers) {
     final correlations = List<Map<String, dynamic>>.from(_intelligenceData?['enhanced_correlations'] ?? []);
     final emerging = List<Map<String, dynamic>>.from(_intelligenceData?['emerging_patterns'] ?? []);
     final allSmartInsights = [...correlations, ...emerging].take(3).toList();
@@ -557,7 +566,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
       children: [
         // ── Smart Insights ──
         if (allSmartInsights.isNotEmpty) ...[
-          _buildSectionLabel('SMART INSIGHTS'),
+          _buildSectionLabel('SMART INSIGHTS'.tr(context)),
           SizedBox(height: 10),
           _buildCardContainer(
             child: Column(
@@ -605,9 +614,34 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
           SizedBox(height: 16),
         ],
 
+        // ── Detected Patterns (moved from Dashboard) ──
+        if (triggers.isNotEmpty) ...[
+          _buildSectionLabel('DETECTED PATTERNS'.tr(context)),
+          SizedBox(height: 10),
+          _buildCardContainer(
+            child: Column(
+              children: triggers.asMap().entries.map((entry) {
+                final isLast = entry.key == triggers.length - 1;
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 0 : 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.circle, size: 5, color: AppTheme.accentAmber)),
+                      SizedBox(width: 12),
+                      Expanded(child: Text(entry.value, style: GoogleFonts.dmSans(color: AppTheme.textS(context), fontSize: 13, height: 1.4))),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          SizedBox(height: 16),
+        ],
+
         // ── AI Observations ──
         if (insights.isNotEmpty) ...[
-          _buildSectionLabel('AI OBSERVATIONS'),
+          _buildSectionLabel('AI OBSERVATIONS'.tr(context)),
           SizedBox(height: 10),
           _buildCardContainer(
             child: Column(
@@ -632,7 +666,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
 
         // ── Suggestions ──
         if (interventions.isNotEmpty) ...[
-          _buildSectionLabel('SUGGESTIONS'),
+          _buildSectionLabel('SUGGESTIONS'.tr(context)),
           SizedBox(height: 10),
           ...interventions.map((item) {
             final priority = item['priority']?.toString() ?? 'moderate';
@@ -659,7 +693,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
 
         // ── Recommendations ──
         if (recs.isNotEmpty) ...[
-          _buildSectionLabel('RECOMMENDATIONS'),
+          _buildSectionLabel('RECOMMENDATIONS'.tr(context)),
           SizedBox(height: 10),
           _buildCardContainer(
             child: Column(
@@ -703,11 +737,11 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         // ── Metric pills row ──
         Row(
           children: [
-            Expanded(child: _buildPillMetric('Mood', avgMood, AppTheme.accentGreen)),
+            Expanded(child: _buildPillMetric('Mood'.tr(context), avgMood, AppTheme.accentGreen)),
             SizedBox(width: 8),
-            Expanded(child: _buildPillMetric('Sleep', '${avgSleep}h', AppTheme.accentBlue)),
+            Expanded(child: _buildPillMetric('Sleep'.tr(context), '${avgSleep}h', AppTheme.accentBlue)),
             SizedBox(width: 8),
-            Expanded(child: _buildPillMetric('Screen', '${avgScreen}h', AppTheme.accentPurple)),
+            Expanded(child: _buildPillMetric('Screen'.tr(context), '${avgScreen}h', AppTheme.accentPurple)),
           ],
         ),
         SizedBox(height: 16),
@@ -724,11 +758,11 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 ],
                 Row(
                   children: [
-                    Expanded(child: _buildTrendChip('Mood', moodTrend, false)),
+                    Expanded(child: _buildTrendChip('Mood'.tr(context), moodTrend, false)),
                     SizedBox(width: 10),
-                    Expanded(child: _buildTrendChip('Sleep', sleepTrend, false)),
+                    Expanded(child: _buildTrendChip('Sleep'.tr(context), sleepTrend, false)),
                     SizedBox(width: 10),
-                    Expanded(child: _buildTrendChip('Screen', screenTrend, true)),
+                    Expanded(child: _buildTrendChip('Screen'.tr(context), screenTrend, true)),
                   ],
                 ),
               ],
@@ -738,7 +772,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         ],
 
         // ── Life Patterns ──
-        _buildSectionLabel('LIFE PATTERNS'),
+        _buildSectionLabel('LIFE PATTERNS'.tr(context)),
         SizedBox(height: 10),
         ..._buildLifePatternsContent(),
       ],
@@ -781,7 +815,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(strength, style: GoogleFonts.dmSans(color: color, fontSize: 9, fontWeight: FontWeight.w600)),
+      child: Text(strength.toString().tr(context), style: GoogleFonts.dmSans(color: color, fontSize: 9, fontWeight: FontWeight.w600)),
     );
   }
 
@@ -874,7 +908,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               children: [
                 Icon(icon, color: color, size: 14),
                 SizedBox(width: 4),
-                Text(trend[0].toUpperCase() + trend.substring(1), style: GoogleFonts.dmSans(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+                Text((trend[0].toUpperCase() + trend.substring(1)).tr(context), style: GoogleFonts.dmSans(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
@@ -909,9 +943,9 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 child: Icon(Icons.insights_rounded, color: AppTheme.accentPurple, size: 24),
               ),
               SizedBox(height: 12),
-              Text('Collecting Pattern Data', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+              Text('Collecting Pattern Data'.tr(context), style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
               SizedBox(height: 8),
-              Text('Keep logging daily to discover long-term behavioral patterns.', style: AppTheme.mutedText, textAlign: TextAlign.center),
+              Text('Keep logging daily to discover long-term behavioral patterns.'.tr(context), style: AppTheme.mutedText, textAlign: TextAlign.center),
               SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
@@ -923,7 +957,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                 ),
               ),
               SizedBox(height: 6),
-              Text('$totalDays / $minRequired days logged', style: AppTheme.mutedText),
+              Text('$totalDays / $minRequired ${'days logged'.tr(context)}', style: AppTheme.mutedText),
             ],
           ),
         ),
@@ -973,7 +1007,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
           children: [
             Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.circle, size: 5, color: AppTheme.accentPurple)),
             SizedBox(width: 12),
-            Expanded(child: Text('We are starting to observe your behavioral trends contextually.', style: GoogleFonts.dmSans(color: AppTheme.textP(context), fontSize: 13, height: 1.4))),
+            Expanded(child: Text('We are starting to observe your behavioral trends contextually.'.tr(context), style: GoogleFonts.dmSans(color: AppTheme.textP(context), fontSize: 13, height: 1.4))),
           ],
         ),
       ));
@@ -988,7 +1022,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               children: [
                 Icon(Icons.lightbulb_outline_rounded, color: AppTheme.accentAmber, size: 18),
                 SizedBox(width: 10),
-                Expanded(child: Text('Early observations from your data.', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textP(context)))),
+                Expanded(child: Text('Early observations from your data.'.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: AppTheme.textP(context)))),
               ],
             ),
             SizedBox(height: 12),
@@ -1047,7 +1081,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
               SizedBox(height: 12),
               Row(
                 children: [
-                  Text('Confidence', style: GoogleFonts.dmSans(color: AppTheme.textM(context), fontSize: 10, fontWeight: FontWeight.w500)),
+                  Text('Confidence'.tr(context), style: GoogleFonts.dmSans(color: AppTheme.textM(context), fontSize: 10, fontWeight: FontWeight.w500)),
                   const Spacer(),
                   Text('${(confidence * 100).toInt()}%', style: GoogleFonts.dmSans(color: confColor, fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
@@ -1069,7 +1103,7 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
                   const Spacer(),
                   Icon(Icons.data_usage_rounded, size: 10, color: AppTheme.textM(context)),
                   SizedBox(width: 3),
-                  Text('$dataPoints data points', style: GoogleFonts.dmSans(color: AppTheme.textM(context), fontSize: 10)),
+                  Text('$dataPoints ${'data points'.tr(context)}', style: GoogleFonts.dmSans(color: AppTheme.textM(context), fontSize: 10)),
                 ],
               ),
             ],
@@ -1118,14 +1152,14 @@ class InsightsScreenState extends State<InsightsScreen> with SingleTickerProvide
             children: [
               Icon(Icons.auto_awesome_rounded, size: 48, color: AppTheme.textM(context).withValues(alpha: 0.4)),
               SizedBox(height: 16),
-              Text('No Insights Yet', style: AppTheme.headingMedium),
+              Text('No Insights Yet'.tr(context), style: AppTheme.headingMedium),
               SizedBox(height: 8),
-              Text('Log your daily data first to get personalized AI insights and recommendations.', style: AppTheme.mutedText, textAlign: TextAlign.center),
+              Text('Log your daily data first to get personalized AI insights and recommendations.'.tr(context), style: AppTheme.mutedText, textAlign: TextAlign.center),
               SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: _load,
                 icon: Icon(Icons.refresh_rounded, size: 18),
-                label: Text('Retry'),
+                label: Text('Retry'.tr(context)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentBlue.withValues(alpha: 0.15),
                   foregroundColor: AppTheme.accentBlue,

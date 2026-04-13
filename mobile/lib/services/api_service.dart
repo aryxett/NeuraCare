@@ -54,8 +54,11 @@ class ApiService {
 
   static Future<Map<String, String>> _authHeaders() async {
     final token = await getToken();
+    final prefs = await SharedPreferences.getInstance();
+    final lang = prefs.getString('language') ?? 'en';
     return {
       'Content-Type': 'application/json',
+      'Accept-Language': lang,
       if (token != null) 'Authorization': 'Bearer $token',
     };
   }

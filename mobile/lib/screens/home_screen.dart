@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import 'dashboard_screen.dart';
@@ -12,6 +13,7 @@ import '../services/api_service.dart';
 import '../services/usage_tracker_service.dart';
 import '../widgets/glass_container.dart';
 import '../core/app_theme.dart';
+import '../core/localization.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -42,7 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _preloadOtherTabs() async {
     // Stagger loading to prevent frame drops in UI
-    final tabsToPreload = [3, 4, 1, 2]; // Priority: Insights, History, Chat, Logs
+    final tabsToPreload = [2, 3, 1]; // Priority: Insights, History, Chat
     for (int i = 0; i < tabsToPreload.length; i++) {
       await Future.delayed(const Duration(milliseconds: 800)); // Load 1 tab every 0.8s
       if (mounted && !_initializedTabs.contains(tabsToPreload[i])) {
@@ -173,8 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(gradient: bgGradient),
         child: Scaffold(
           backgroundColor: Colors.transparent,
-          extendBody: true, // Allows body to scroll under the floating nav bar
-          appBar: AppBar(
+          extendBody: false,
+          appBar: _currentIndex == 0 ? AppBar(
             centerTitle: false,
             titleSpacing: 16.0,
             title: Column(
@@ -231,57 +233,61 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ],
-          ),
+          ) : null,
           body: IndexedStack(
             index: _currentIndex,
             children: [
-              _initializedTabs.contains(0) ? DashboardScreen(key: _dashboardKey, onStressUpdate: _toggleSafeSpace) : const SizedBox.shrink(),
+              _initializedTabs.contains(0) ? DashboardScreen(
+                key: _dashboardKey, 
+                onStressUpdate: _toggleSafeSpace,
+                onLogSubmitted: () {
+                  _historyKey.currentState?.refresh();
+                  _insightsKey.currentState?.refresh();
+                },
+              ) : const SizedBox.shrink(),
               _initializedTabs.contains(1) ? const TherapyChatScreen() : const SizedBox.shrink(),
-              _initializedTabs.contains(2) ? LogEntryScreen(onSubmitted: _onDataSubmitted) : const SizedBox.shrink(),
-              _initializedTabs.contains(3) ? InsightsScreen(key: _insightsKey) : const SizedBox.shrink(),
-              _initializedTabs.contains(4) ? HistoryScreen(key: _historyKey) : const SizedBox.shrink(),
+              _initializedTabs.contains(2) ? InsightsScreen(key: _insightsKey) : const SizedBox.shrink(),
+              _initializedTabs.contains(3) ? HistoryScreen(key: _historyKey) : const SizedBox.shrink(),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: GlassContainer(
-                baseColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                borderRadius: 24,
-                borderOpacity: 0.15,
-                child: BottomNavigationBar(
-                  currentIndex: _currentIndex,
-                  onTap: (i) {
-                    setState(() {
-                      _currentIndex = i;
-                      _initializedTabs.add(i);
-                    });
-                  },
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  selectedItemColor: const Color(0xFF3B82F6),
-                  unselectedItemColor: isDark ? Colors.white.withValues(alpha: 0.4) : const Color(0xFF6B7280).withValues(alpha: 0.8),
-                  showSelectedLabels: true,
-                  showUnselectedLabels: false,
-                  type: BottomNavigationBarType.fixed,
-                  items: const [
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.dashboard_rounded), label: 'Dash'),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.chat_bubble_rounded), label: 'Chat'),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.add_circle_outline_rounded),
-                        label: 'Log'),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.auto_awesome_rounded),
-                        label: 'Insights'),
-                    BottomNavigationBarItem(
-                        icon: Icon(Icons.bar_chart_rounded), label: 'History'),
-                  ],
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF10192B) : Colors.white,
+              border: Border(
+                top: BorderSide(
+                  color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06),
+                  width: 0.5,
                 ),
               ),
+            ),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (i) {
+                setState(() {
+                  _currentIndex = i;
+                  _initializedTabs.add(i);
+                });
+              },
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedItemColor: AppTheme.accentBlue,
+              unselectedItemColor: isDark ? Colors.white.withValues(alpha: 0.4) : const Color(0xFF6B7280),
+              selectedLabelStyle: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.normal),
+              showSelectedLabels: true,
+              showUnselectedLabels: true,
+              type: BottomNavigationBarType.fixed,
+              items: [
+                BottomNavigationBarItem(
+                    icon: const Icon(Icons.dashboard_rounded), label: 'Dash'.tr(context)),
+                BottomNavigationBarItem(
+                    icon: const Icon(Icons.chat_bubble_rounded), label: 'Chat'.tr(context)),
+                BottomNavigationBarItem(
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                    label: 'Insights'.tr(context)),
+                BottomNavigationBarItem(
+                    icon: const Icon(Icons.bar_chart_rounded), label: 'History'.tr(context)),
+              ],
             ),
           ),
         ),

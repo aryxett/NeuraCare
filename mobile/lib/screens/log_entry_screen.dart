@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../services/api_service.dart';
 import '../core/app_theme.dart';
+import '../core/localization.dart';
 import '../providers/google_fit_provider.dart';
 
 class LogEntryScreen extends StatefulWidget {
@@ -103,21 +104,40 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Scaffold(
+      backgroundColor: AppTheme.bg(context),
+      appBar: AppBar(
+        backgroundColor: AppTheme.bg(context),
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: IconThemeData(color: AppTheme.textP(context)),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Header ──
-            Text('Daily Log', style: AppTheme.headingLarge),
-            SizedBox(height: 4),
-            Text('Record your metrics for cognitive analysis', style: AppTheme.labelText),
-            SizedBox(height: 24),
-
-
-
+            Text('Mood tracker '.tr(context), style: GoogleFonts.outfit(fontWeight: FontWeight.w600, color: AppTheme.textP(context), fontSize: 18)),
+            Text('Beta'.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.bold, color: const Color(0xFFC084FC), fontSize: 12)),
+          ],
+        ),
+        leading: IconButton(icon: Icon(Icons.arrow_back, color: AppTheme.textP(context)), onPressed: () => Navigator.pop(context)),
+        actions: [
+          IconButton(icon: Icon(Icons.notifications_none_rounded, color: AppTheme.textP(context)), onPressed: () {}),
+        ]
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 10, bottom: 40),
+          child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Premium Top Mood Check-In Card ──
+              _buildPremiumMoodCard(),
+              SizedBox(height: 24),
+              Text('Daily Parameters'.tr(context), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textP(context))),
+              SizedBox(height: 12),
             // ── Google Fit sleep auto-fill badge ──
             if (_sleepAutoFilled)
               Container(
@@ -134,7 +154,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Sleep auto-filled from Google Fit • ${_sleepHours.toStringAsFixed(1)}h',
+                        'Sleep auto-filled from Google Fit'.tr(context) + ' • ${_sleepHours.toStringAsFixed(1)}h',
                         style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.accentGreen),
                       ),
                     ),
@@ -150,7 +170,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             _buildSliderCard(
               icon: Icons.nightlight_round,
               iconColor: AppTheme.accentBlue,
-              label: 'Sleep Duration',
+              label: 'Sleep Duration'.tr(context),
               value: _sleepHours,
               displayValue: '${_sleepHours.toStringAsFixed(1)}h',
               valueColor: AppTheme.accentBlue,
@@ -169,7 +189,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             _buildSliderCard(
               icon: Icons.phone_android_rounded,
               iconColor: const Color(0xFFE040FB),
-              label: 'Screen Time',
+              label: 'Screen Time'.tr(context),
               value: _screenTime,
               displayValue: '${_screenTime.toStringAsFixed(1)}h',
               valueColor: const Color(0xFFE040FB),
@@ -181,9 +201,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             ),
             SizedBox(height: 12),
 
-            // ── Mood Picker ──
-            _buildMoodCard(),
-            SizedBox(height: 12),
+
 
             // ── Exercise Toggle ──
             _buildExerciseToggle(),
@@ -199,6 +217,8 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
             ],
           ],
         ),
+      ),
+      ),
       ),
     );
   }
@@ -263,13 +283,20 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildMoodCard() {
+  Widget _buildPremiumMoodCard() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppTheme.card(context),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppTheme.border(context), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,46 +304,65 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(children: [
-                Icon(Icons.sentiment_satisfied_rounded, color: AppTheme.accentPurple, size: 18),
-                SizedBox(width: 8),
-                Text('Mood Rating', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
-              ]),
+              Row(
+                children: [
+                  Icon(Icons.wb_cloudy_rounded, color: const Color(0xFFC084FC), size: 16),
+                  SizedBox(width: 8),
+                  Text('Today\'s check-in'.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 13, color: const Color(0xFFC084FC))),
+                ],
+              ),
               Text('$_mood/10', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: AppTheme.accentGreen, fontSize: 16)),
             ],
           ),
-          SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(5, (i) {
-              final val = (i + 1) * 2;
-              final selected = _mood == val || _mood == val - 1;
-              IconData iconData;
-              switch(i) {
-                case 0: iconData = Icons.sentiment_very_dissatisfied_rounded; break;
-                case 1: iconData = Icons.sentiment_dissatisfied_rounded; break;
-                case 2: iconData = Icons.sentiment_neutral_rounded; break;
-                case 3: iconData = Icons.sentiment_satisfied_rounded; break;
-                default: iconData = Icons.sentiment_very_satisfied_rounded; break;
-              }
-
-              return GestureDetector(
-                onTap: () => setState(() => _mood = val),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 50, height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selected ? AppTheme.accentPurple.withValues(alpha: 0.15) : AppTheme.elevated(context),
-                    border: Border.all(
-                      color: selected ? AppTheme.accentPurple : Colors.transparent,
-                      width: selected ? 2 : 0,
+          SizedBox(height: 16),
+          Text('How do you feel today?'.tr(context), style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.textP(context))),
+          SizedBox(height: 4),
+          Text('Time to reflect on your day'.tr(context), style: AppTheme.mutedText),
+          SizedBox(height: 24),
+          
+          // Emojis Selector
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
+            decoration: BoxDecoration(
+              color: AppTheme.elevated(context),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(5, (i) {
+                final val = (i + 1) * 2;
+                final selected = _mood == val || _mood == val - 1;
+                IconData iconData;
+                switch(i) {
+                  case 0: iconData = Icons.sentiment_very_dissatisfied_rounded; break;
+                  case 1: iconData = Icons.sentiment_dissatisfied_rounded; break;
+                  case 2: iconData = Icons.sentiment_neutral_rounded; break;
+                  case 3: iconData = Icons.sentiment_satisfied_rounded; break;
+                  default: iconData = Icons.sentiment_very_satisfied_rounded; break;
+                }
+            
+                return GestureDetector(
+                  onTap: () => setState(() => _mood = val),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 50, height: 50,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? AppTheme.accentPurple.withValues(alpha: 0.15) : Colors.transparent,
+                      border: Border.all(
+                        color: selected ? AppTheme.accentPurple : Colors.transparent,
+                        width: selected ? 2 : 0,
+                      ),
                     ),
+                    child: Icon(iconData, color: selected ? AppTheme.accentPurple : AppTheme.textS(context), size: 28),
                   ),
-                  child: Icon(iconData, color: selected ? AppTheme.accentPurple : AppTheme.textS(context), size: 28),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
+          ),
+          SizedBox(height: 12),
+          Center(
+            child: Text('Tap on emoji that matches your feeling'.tr(context), style: GoogleFonts.dmSans(fontSize: 12, color: AppTheme.accentBlue)),
           ),
         ],
       ),
@@ -337,7 +383,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
           Row(children: [
             Icon(Icons.fitness_center_rounded, color: AppTheme.accentGreen, size: 18),
             SizedBox(width: 8),
-            Text('Physical Activity', style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
+            Text('Physical Activity'.tr(context), style: GoogleFonts.dmSans(fontWeight: FontWeight.w600, fontSize: 14, color: AppTheme.textP(context))),
           ]),
           Switch(
             value: _exercise,
@@ -366,7 +412,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
         ),
         child: _loading
           ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-          : Text('Analyze Patterns', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+          : Text('Analyze Patterns'.tr(context), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
       ),
     );
   }
@@ -386,7 +432,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
       ),
       child: Column(
         children: [
-          Text('AI Prediction Model', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+          Text('AI Prediction Model'.tr(context), style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
           SizedBox(height: 22),
           CircularPercentIndicator(
             radius: 58,
@@ -404,7 +450,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
                   score.toStringAsFixed(0),
                   style: GoogleFonts.outfit(fontSize: 32, fontWeight: FontWeight.bold, color: rColor),
                 ),
-                Text('Score', style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.textS(context))),
+                Text('Score'.tr(context), style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.textS(context))),
               ],
             ),
           ),
@@ -416,7 +462,7 @@ class _LogEntryScreenState extends State<LogEntryScreen> with SingleTickerProvid
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: rColor.withValues(alpha: 0.4)),
             ),
-            child: Text('Risk: $riskLevel', style: GoogleFonts.dmSans(color: rColor, fontWeight: FontWeight.w600, fontSize: 13)),
+            child: Text('${'Risk Level'.tr(context)}: ${riskLevel.tr(context)}', style: GoogleFonts.dmSans(color: rColor, fontWeight: FontWeight.w600, fontSize: 13)),
           ),
           if (message.isNotEmpty) ...[
             SizedBox(height: 16),

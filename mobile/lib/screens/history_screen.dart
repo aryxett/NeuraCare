@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import '../core/app_theme.dart';
+import '../core/localization.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -45,7 +46,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
         _animController.forward(from: 0.0);
       }
     } catch (e) {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+        _animController.forward(from: 0.0);
+      }
     }
   }
 
@@ -117,12 +121,14 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
     final mood = chartData['mood'] as List<double>;
     final screenTime = chartData['screen'] as List<double>;
 
-    return RefreshIndicator(
-      onRefresh: () async => _load(),
-      color: AppTheme.accentBlue,
-      backgroundColor: AppTheme.bg(context),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 100),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: () async => _load(),
+        color: AppTheme.accentBlue,
+        backgroundColor: AppTheme.bg(context),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 20),
         physics: const AlwaysScrollableScrollPhysics(),
         child: FadeTransition(
           opacity: _fadeAnimation,
@@ -130,14 +136,12 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header ──
-              Text('History', style: AppTheme.headingLarge),
-              SizedBox(height: 4),
-              Text('Your weekly cognitive patterns', style: AppTheme.labelText),
+              Center(child: Text('History'.tr(context), style: AppTheme.headingLarge)),
               SizedBox(height: 28),
 
               // ── Sleep BarChart ──
               _buildChartCard(
-                title: 'Sleep Duration',
+                title: 'Sleep Duration'.tr(context),
                 icon: Icons.nightlight_round,
                 iconColor: AppTheme.accentBlue,
                 chart: _buildSleepBarChart(sleep, dayLabels),
@@ -147,7 +151,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
 
               // ── Mood LineChart ──
               _buildChartCard(
-                title: 'Mood Fluctuation',
+                title: 'Mood Fluctuation'.tr(context),
                 icon: Icons.sentiment_satisfied_rounded,
                 iconColor: AppTheme.accentPurple,
                 chart: _buildMoodLineChart(mood, dayLabels),
@@ -157,7 +161,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
 
               // ── Screen Time LineChart ──
               _buildChartCard(
-                title: 'Screen Time',
+                title: 'Screen Time'.tr(context),
                 icon: Icons.phone_android_rounded,
                 iconColor: AppTheme.accentPurple,
                 chart: _buildScreenTimeLineChart(screenTime, dayLabels),
@@ -166,6 +170,7 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -183,10 +188,10 @@ class HistoryScreenState extends State<HistoryScreen> with SingleTickerProviderS
           children: [
             Icon(Icons.bar_chart_rounded, size: 48, color: AppTheme.textM(context).withValues(alpha: 0.4)),
             SizedBox(height: 16),
-            Text('No History Yet', style: AppTheme.headingMedium),
+            Text('No History Yet'.tr(context), style: AppTheme.headingMedium),
             SizedBox(height: 8),
             Text(
-              'Start logging daily data to see your\nwellness trends over time.',
+              'Start logging daily data to see your\nwellness trends over time.'.tr(context),
               style: AppTheme.mutedText,
               textAlign: TextAlign.center,
             ),
