@@ -6,6 +6,8 @@ import '../core/app_theme.dart';
 import '../core/localization.dart';
 import 'log_entry_screen.dart';
 import 'meditation_screen.dart';
+import '../models/daily_article.dart';
+import 'daily_article_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(bool) onStressUpdate;
@@ -371,12 +373,18 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           bgIcon: Icons.self_improvement_rounded, bgIconColor: Colors.purpleAccent.withValues(alpha: 0.3),
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
         ),
-        _buildPlanItemRow(
-          tag: 'Articles'.tr(context), tagIcon: Icons.article_outlined, tagColor: Colors.greenAccent,
-          title: '5 types of self-love language'.tr(context), subtitle: '2 min read'.tr(context),
-          gradientColors: isDark ? [const Color(0xFF064E3B).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.green.shade50, Colors.blue.shade50],
-          bgIcon: Icons.menu_book_rounded, bgIconColor: Colors.greenAccent.withValues(alpha: 0.2),
-          isLastInSection: true,
+        Builder(
+          builder: (context) {
+            final todayArticle = DailyArticle.today;
+            return _buildPlanItemRow(
+              tag: 'Articles'.tr(context), tagIcon: Icons.article_outlined, tagColor: Colors.greenAccent,
+              title: todayArticle.title.tr(context), subtitle: todayArticle.readTime.tr(context),
+              gradientColors: isDark ? [const Color(0xFF064E3B).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.green.shade50, Colors.blue.shade50],
+              bgIcon: Icons.menu_book_rounded, bgIconColor: Colors.greenAccent.withValues(alpha: 0.2),
+              isLastInSection: true,
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DailyArticleScreen(article: todayArticle))),
+            );
+          }
         ),
 
         // ── Day ──
