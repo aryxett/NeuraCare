@@ -129,7 +129,7 @@ pytest tests/ -v
 │   └── lib/
 │       ├── screens/
 │       └── services/
-└── docker-compose.yml
+└── docker-compose.ymls
 ```
 
 ## 📄 License
