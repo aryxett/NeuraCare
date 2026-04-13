@@ -3,7 +3,7 @@ Dashboard API Router
 Combined endpoints for mobile app real-time data sync.
 """
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Request
 from sqlalchemy.orm import Session
 from sqlalchemy import func as sqlfunc
 from datetime import date, timedelta
