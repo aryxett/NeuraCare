@@ -21,6 +21,8 @@ dependencies:
   percent_indicator: ^4.2.5
   health: ^13.0.0
   permission_handler: ^11.3.0
+  audioplayers: ^6.1.0
+  vibration: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +35,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icon/
+    - assets/audio/
 
 flutter_launcher_icons:
   android: "ic_launcher"

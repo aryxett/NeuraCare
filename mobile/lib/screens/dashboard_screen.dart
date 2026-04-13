@@ -5,6 +5,7 @@ import '../services/api_service.dart';
 import '../core/app_theme.dart';
 import '../core/localization.dart';
 import 'log_entry_screen.dart';
+import 'meditation_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Function(bool) onStressUpdate;
@@ -365,9 +366,10 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         _buildPlanTimeTitle('Morning'.tr(context), Icons.wb_twilight_rounded, AppTheme.accentBlue, isFirst: true),
         _buildPlanItemRow(
           tag: 'Breath'.tr(context), tagIcon: Icons.air_rounded, tagColor: Colors.lightBlueAccent,
-          title: 'Anxiety'.tr(context), subtitle: '2 min meditation'.tr(context),
+          title: _currentMoodLabel.tr(context), subtitle: '2 min meditation'.tr(context),
           gradientColors: isDark ? [const Color(0xFF0F172A), const Color(0xFF2E1065)] : [Colors.blue.shade50, Colors.purple.shade50],
           bgIcon: Icons.self_improvement_rounded, bgIconColor: Colors.purpleAccent.withValues(alpha: 0.3),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
         ),
         _buildPlanItemRow(
           tag: 'Articles'.tr(context), tagIcon: Icons.article_outlined, tagColor: Colors.greenAccent,
@@ -452,6 +454,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     required IconData bgIcon, required Color bgIconColor,
     bool isLastInSection = false,
     bool isVeryLast = false,
+    VoidCallback? onTap,
   }) {
     final isDark = AppTheme.isDark(context);
     final lineColor = isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.15);
@@ -502,6 +505,8 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           const SizedBox(width: 12),
           // Plan Card
           Expanded(
+            child: GestureDetector(
+            onTap: onTap,
             child: Container(
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
@@ -546,10 +551,25 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                 ),
               ),
             ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  String get _currentMoodLabel {
+    final mood = _summary?['mood'];
+    if (mood == null) return 'Calm';
+    if (mood is String && mood.isNotEmpty) return mood;
+    if (mood is num) {
+      if (mood >= 8) return 'Happy';
+      if (mood >= 6) return 'Calm';
+      if (mood >= 4) return 'Neutral';
+      if (mood >= 2) return 'Sad';
+      return 'Anxiety';
+    }
+    return 'Calm';
   }
 
   String _stripEmoji(String text) {
