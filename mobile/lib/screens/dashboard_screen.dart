@@ -371,6 +371,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
           title: _currentMoodLabel.tr(context), subtitle: '2 min meditation'.tr(context),
           gradientColors: isDark ? [const Color(0xFF0F172A), const Color(0xFF2E1065)] : [Colors.blue.shade50, Colors.purple.shade50],
           bgIcon: Icons.self_improvement_rounded, bgIconColor: Colors.purpleAccent.withValues(alpha: 0.3),
+          assetPath: 'assets/images/dashboard_breath.png',
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
         ),
         Builder(
@@ -381,6 +382,7 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
               title: todayArticle.title.tr(context), subtitle: todayArticle.readTime.tr(context),
               gradientColors: isDark ? [const Color(0xFF064E3B).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.green.shade50, Colors.blue.shade50],
               bgIcon: Icons.menu_book_rounded, bgIconColor: Colors.greenAccent.withValues(alpha: 0.2),
+              imageUrl: todayArticle.imageUrl,
               isLastInSection: true,
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DailyArticleScreen(article: todayArticle))),
             );
@@ -391,9 +393,10 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         _buildPlanTimeTitle('Day'.tr(context), Icons.light_mode_outlined, Colors.amberAccent),
         _buildPlanItemRow(
           tag: 'Meditation'.tr(context), tagIcon: Icons.spa_outlined, tagColor: Colors.orangeAccent,
-          title: 'Daily affirmation'.tr(context), subtitle: '10 min'.tr(context),
+          title: 'Cooking'.tr(context), subtitle: '5 min'.tr(context),
           gradientColors: isDark ? [const Color(0xFF1E3A8A).withValues(alpha: 0.5), const Color(0xFF0F172A)] : [Colors.amber.shade50, Colors.blue.shade50],
           bgIcon: Icons.psychology_rounded, bgIconColor: Colors.orangeAccent.withValues(alpha: 0.2),
+          assetPath: 'assets/images/dashboard_cooking.png',
           isLastInSection: true,
         ),
 
@@ -401,15 +404,17 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
         _buildPlanTimeTitle('Evening'.tr(context), Icons.nights_stay_outlined, Colors.indigoAccent),
         _buildPlanItemRow(
           tag: 'Sleep Stories'.tr(context), tagIcon: Icons.bedtime_outlined, tagColor: Colors.indigoAccent,
-          title: 'Adventures of Huckleberry Finn'.tr(context), subtitle: '16 min'.tr(context),
+          title: 'Rip Van Winkle'.tr(context), subtitle: '12 min'.tr(context),
           gradientColors: isDark ? [const Color(0xFF0A0F24), const Color(0xFF1E1B4B)] : [Colors.indigo.shade50, Colors.purple.shade50],
           bgIcon: Icons.auto_stories_rounded, bgIconColor: Colors.indigoAccent.withValues(alpha: 0.3),
+          assetPath: 'assets/images/dashboard_sleep_story.png',
         ),
         _buildPlanItemRow(
           tag: 'Sleep Sounds'.tr(context), tagIcon: Icons.music_note_rounded, tagColor: Colors.pinkAccent,
           title: 'Relax music'.tr(context), subtitle: 'Unwind and relax'.tr(context),
           gradientColors: isDark ? [const Color(0xFF1E1B4B).withValues(alpha: 0.5), const Color(0xFF4A044E)] : [Colors.pink.shade50, Colors.purple.shade50],
           bgIcon: Icons.headphones_rounded, bgIconColor: Colors.pinkAccent.withValues(alpha: 0.15),
+          assetPath: 'assets/images/dashboard_sleep_sound.png',
           isVeryLast: true,
         ),
       ],
@@ -460,12 +465,14 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
     required String title, required String subtitle,
     required List<Color> gradientColors,
     required IconData bgIcon, required Color bgIconColor,
+    String? assetPath,
+    String? imageUrl,
     bool isLastInSection = false,
     bool isVeryLast = false,
     VoidCallback? onTap,
   }) {
     final isDark = AppTheme.isDark(context);
-    final lineColor = isDark ? Colors.white.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.15);
+    final lineColor = isDark ? Colors.white.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.25);
     // Should we show the line below the circle?
     final bool showLineBelow = !isLastInSection && !isVeryLast;
 
@@ -499,10 +506,10 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                 Positioned(
                   top: 42,
                   child: Container(
-                    width: 12, height: 12,
+                    width: 16, height: 16,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.textM(context), width: 2),
+                      border: Border.all(color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8), width: 3),
                       color: AppTheme.bg(context),
                     ),
                   ),
@@ -534,6 +541,26 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                       right: -15, bottom: -15,
                       child: Icon(bgIcon, size: 100, color: bgIconColor),
                     ),
+                    
+                    if (assetPath != null || imageUrl != null)
+                      Positioned(
+                        right: 0, bottom: 0, top: 0,
+                        child: ShaderMask(
+                          shaderCallback: (rect) {
+                            return const LinearGradient(
+                              begin: Alignment.centerLeft,
+                              end: Alignment.centerRight,
+                              colors: [Colors.transparent, Colors.black],
+                              stops: [0.0, 0.3],
+                            ).createShader(rect);
+                          },
+                          blendMode: BlendMode.dstIn,
+                          child: assetPath != null 
+                            ? Image.asset(assetPath, width: 140, fit: BoxFit.cover, alignment: Alignment.centerRight)
+                            : Image.network(imageUrl!, width: 140, fit: BoxFit.cover, alignment: Alignment.centerRight),
+                        ),
+                      ),
+                      
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -549,7 +576,10 @@ class DashboardScreenState extends State<DashboardScreen> with SingleTickerProvi
                             ],
                           ),
                           const SizedBox(height: 12),
-                          Text(title, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.45,
+                            child: Text(title, style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textP(context))),
+                          ),
                           const SizedBox(height: 4),
                           Text(subtitle, style: GoogleFonts.dmSans(fontSize: 13, color: AppTheme.textS(context).withValues(alpha: 0.8))),
                         ],
@@ -926,11 +956,11 @@ class _DottedLinePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = color
-      ..strokeWidth = 2
+      ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
 
-    const dashHeight = 4.0;
-    const dashSpace = 4.0;
+    const dashHeight = 6.0;
+    const dashSpace = 6.0;
     double startY = 0.0;
 
     // Center the dotted line horizontally within its bounding box
