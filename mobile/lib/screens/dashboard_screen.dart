@@ -516,9 +516,15 @@ class DashboardScreenState extends State<DashboardScreen>
                 Positioned(
                   top: 16,
                   bottom: 0,
-                  width: 3,
-                  child: CustomPaint(
-                      painter: _GlowingLinePainter(color: lineColor)),
+                  width: 2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: lineColor.withValues(alpha: 0.5),
+                      boxShadow: [
+                        BoxShadow(color: lineColor.withValues(alpha: 0.2), blurRadius: 4, spreadRadius: 1)
+                      ]
+                    )
+                  ),
                 ),
                 // Section Icon
                 Container(
@@ -578,21 +584,33 @@ class DashboardScreenState extends State<DashboardScreen>
                 Positioned(
                   top: 0,
                   height: 48,
-                  width: 3,
-                  child: CustomPaint(
-                      painter: _GlowingLinePainter(color: lineColor)),
+                  width: 2,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: lineColor,
+                      boxShadow: [
+                        BoxShadow(color: lineColor.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1)
+                      ]
+                    ),
+                  ),
                 ),
                 // Line from circle to bottom (only if not last in section)
                 if (showLineBelow)
                   Positioned(
                     top: 54,
                     bottom: 0,
-                    width: 3,
-                    child: CustomPaint(
-                        painter: _GlowingLinePainter(color: lineColor)),
+                    width: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: lineColor,
+                        boxShadow: [
+                          BoxShadow(color: lineColor.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1)
+                        ]
+                      ),
+                    ),
                   ),
 
-                // Circle marker (Glowing Neo style)
+                // Circle marker (Sleek professional style)
                 Positioned(
                   top: 42,
                   child: Container(
@@ -601,12 +619,12 @@ class DashboardScreenState extends State<DashboardScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: tagColor, width: 3),
-                      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                      color: AppTheme.bg(context),
                       boxShadow: [
                         BoxShadow(
-                            color: tagColor.withValues(alpha: 0.6),
-                            blurRadius: 6,
-                            spreadRadius: 1)
+                            color: tagColor.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            spreadRadius: 0)
                       ],
                     ),
                   ),
@@ -681,6 +699,7 @@ class DashboardScreenState extends State<DashboardScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 18, vertical: 20),
                           child: Column(
+                            mainAxisSize: MainAxisSize.min, // Fix for intrinsic height overflow
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
@@ -710,6 +729,8 @@ class DashboardScreenState extends State<DashboardScreen>
                               SizedBox(
                                 width: MediaQuery.of(context).size.width * 0.45,
                                 child: Text(title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.outfit(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w600,
@@ -717,6 +738,8 @@ class DashboardScreenState extends State<DashboardScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.dmSans(
                                       fontSize: 13,
                                       color: AppTheme.textS(context)
@@ -1139,27 +1162,4 @@ class DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// ─── Glowing Line Painter ───────────────────────────────────────────
-class _GlowingLinePainter extends CustomPainter {
-  final Color color;
-  _GlowingLinePainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color.withValues(alpha: 0.9)
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round
-      ..maskFilter = const MaskFilter.blur(BlurStyle.solid, 3.0); // Neon glow
-
-    final dx = size.width / 2;
-    canvas.drawLine(
-      Offset(dx, 0),
-      Offset(dx, size.height),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
+// Removed _GlowingLinePainter as it's been replaced with sleek Container styling
