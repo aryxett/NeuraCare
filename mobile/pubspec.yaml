@@ -9,7 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.2
+  http: ^1.6.0
   shared_preferences: ^2.2.2
   fl_chart: ^0.65.0
   google_fonts: ^6.1.0
@@ -25,6 +25,7 @@ dependencies:
   vibration: ^2.0.0
   cached_network_image: ^3.4.1
   flutter_staggered_animations: ^1.1.1
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:
@@ -38,6 +39,8 @@ flutter:
     - assets/images/
     - assets/icon/
     - assets/audio/
+    - assets/sleep-audio/
+    - assets/stretch-audio/
 
 flutter_launcher_icons:
   android: "ic_launcher"

@@ -10,6 +10,9 @@ import 'meditation_screen.dart';
 import '../models/daily_article.dart';
 import '../models/daily_routine.dart';
 import 'daily_article_screen.dart';
+import 'sleep_music_screen.dart';
+import 'walking_meditation_screen.dart';
+import 'morning_stretch_screen.dart';
 import 'dart:ui';
 
 class DashboardScreen extends StatefulWidget {
@@ -37,6 +40,7 @@ class DashboardScreenState extends State<DashboardScreen>
   bool _submittingMood = false;
   String? _selectedMood;
   String? _error;
+  String _planTimeSlot = 'Morning'; // For My Plan grid dropdown
 
   late AnimationController _animController;
   late Animation<double> _fadeAnimation;
@@ -381,92 +385,309 @@ class DashboardScreenState extends State<DashboardScreen>
 
   Widget _buildDailyPlan() {
     final isDark = AppTheme.isDark(context);
-    final routines = DailyRoutinePool.getTodayRoutines();
 
-    final List<Widget> planItems = [
-      // ── Section Header ──
-      Row(
-        children: [
-          Text('My plan'.tr(context),
-              style: GoogleFonts.outfit(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.textP(context))),
-          const Spacer(),
-          Icon(Icons.auto_awesome_rounded,
-              color: AppTheme.accentPurple, size: 24),
-        ],
-      ),
-      const SizedBox(height: 20),
+    // ── Card data for each time slot ──
+    final Map<String, List<Map<String, dynamic>>> slotCards = {
+      'Morning': [
+        {
+          'title': 'Morning Energy Boost'.tr(context),
+          'subtitle': '2 min session'.tr(context),
+          'asset': 'assets/images/dashboard_breath.png',
+          'color': Colors.amberAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
+        },
+        {
+          'title': DailyArticle.today.title.tr(context),
+          'subtitle': DailyArticle.today.readTime.tr(context),
+          'asset': 'assets/images/avatar_positive_thoughts.png',
+          'color': Colors.greenAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => DailyArticleScreen(article: DailyArticle.today))),
+        },
+        {
+          'title': 'Morning Stretch'.tr(context),
+          'subtitle': '3 min flow'.tr(context),
+          'asset': 'assets/images/avatar_morning_stretch.png',
+          'color': Colors.orangeAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const MorningStretchScreen())),
+        },
+        {
+          'title': 'Mindful Awakening'.tr(context),
+          'subtitle': '5 min breathing'.tr(context),
+          'asset': 'assets/images/avatar_meditation_morning.png',
+          'color': Colors.lightBlueAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MeditationScreen(
+                mood: _currentMoodLabel,
+                durationSeconds: 308, // 14 full cycles (14 × 22s) = 308s ≈ 5 min, ends on exhale
+                bgMusicAsset: 'sleep-audio/natureseye-frequency-of-sleep-meditation-113050.mp3',
+              ))),
+        },
+      ],
+      'Day': [
+        {
+          'title': 'Stress Relief'.tr(context),
+          'subtitle': '3 min block'.tr(context),
+          'asset': 'assets/images/avatar_stress_relief.png',
+          'color': Colors.tealAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
+        },
+        {
+          'title': 'Walking Meditation'.tr(context),
+          'subtitle': '10 min stroll'.tr(context),
+          'asset': 'assets/images/avatar_walk.png',
+          'color': Colors.greenAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const WalkingMeditationScreen())),
+        },
+        {
+          'title': 'Mindful Coffee'.tr(context),
+          'subtitle': 'Enjoy the moment'.tr(context),
+          'asset': 'assets/images/avatar_coffee_break.png',
+          'color': Colors.brown.shade300,
+          'onTap': () {},
+        },
+        {
+          'title': 'Focus Session'.tr(context),
+          'subtitle': '5 min deep focus'.tr(context),
+          'asset': 'assets/images/avatar_focus_session.png',
+          'color': Colors.cyanAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
+        },
+      ],
+      'Evening': [
+        {
+          'title': 'Deep Relaxation'.tr(context),
+          'subtitle': 'Body scan'.tr(context),
+          'asset': 'assets/images/avatar_relaxation.png',
+          'color': Colors.purpleAccent,
+          'onTap': () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => MeditationScreen(mood: _currentMoodLabel))),
+        },
+        {
+          'title': 'Deep Sleep Binaural'.tr(context),
+          'subtitle': 'Unwind and relax'.tr(context),
+          'asset': 'assets/images/dashboard_sleep_sound.png',
+          'color': Colors.pinkAccent,
+          'onTap': () {
+            Navigator.push(context, PageRouteBuilder(
+              pageBuilder: (_, a, __) => const SleepMusicScreen(),
+              transitionsBuilder: (_, a, __, child) => FadeTransition(opacity: a, child: child),
+              transitionDuration: const Duration(milliseconds: 300),
+            ));
+          },
+        },
+        {
+          'title': 'Sleep Story'.tr(context),
+          'subtitle': 'The Magic Forest'.tr(context),
+          'asset': 'assets/images/dashboard_sleep_story.png',
+          'color': Colors.indigoAccent,
+          'onTap': () {},
+        },
+        {
+          'title': 'Gratitude Journal'.tr(context),
+          'subtitle': '5 min review'.tr(context),
+          'asset': 'assets/images/avatar_journaling.png',
+          'color': Colors.pinkAccent.shade100,
+          'onTap': () {},
+        },
+      ],
+    };
 
-      // ── Morning ──
-      _buildPlanTimeTitle(
-          'Morning'.tr(context), Icons.wb_twilight_rounded, AppTheme.accentBlue,
-          isFirst: true),
-      _buildPlanItemRowFromRoutine(routines['morning']!),
-      Builder(builder: (context) {
-        final todayArticle = DailyArticle.today;
-        return _buildPlanItemRow(
-          tag: 'Articles'.tr(context),
-          tagIcon: Icons.article_outlined,
-          tagColor: Colors.greenAccent,
-          title: todayArticle.title.tr(context),
-          subtitle: todayArticle.readTime.tr(context),
-          gradientColors: isDark
-              ? [
-                  const Color(0xFF064E3B).withValues(alpha: 0.5),
-                  const Color(0xFF0F172A)
-                ]
-              : [Colors.green.shade50, Colors.blue.shade50],
-          bgIcon: Icons.menu_book_rounded,
-          bgIconColor: Colors.greenAccent.withValues(alpha: 0.2),
-          imageUrl: todayArticle.imageUrl,
-          isLastInSection: true,
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => DailyArticleScreen(article: todayArticle))),
-        );
-      }),
+    final cards = slotCards[_planTimeSlot] ?? slotCards['Morning']!;
+    final timeSlots = ['Morning', 'Day', 'Evening'];
+    final slotIcons = {
+      'Morning': Icons.wb_twilight_rounded,
+      'Day': Icons.light_mode_outlined,
+      'Evening': Icons.nights_stay_outlined,
+    };
 
-      // ── Day ──
-      _buildPlanTimeTitle(
-          'Day'.tr(context), Icons.light_mode_outlined, Colors.amberAccent),
-      _buildPlanItemRowFromRoutine(routines['day']!, isLastInSection: true),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Header with dropdown ──
+        Row(
+          children: [
+            Text('My plan'.tr(context),
+                style: GoogleFonts.outfit(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textP(context))),
+            const Spacer(),
+            // Dropdown selector
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.black.withValues(alpha: 0.08),
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _planTimeSlot,
+                  isDense: true,
+                  icon: Icon(Icons.keyboard_arrow_down_rounded,
+                      size: 18, color: AppTheme.textS(context)),
+                  dropdownColor:
+                      isDark ? const Color(0xFF1A2236) : Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textP(context),
+                  ),
+                  items: timeSlots.map((slot) {
+                    return DropdownMenuItem(
+                      value: slot,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(slotIcons[slot], size: 15,
+                              color: AppTheme.textS(context)),
+                          const SizedBox(width: 6),
+                          Text(slot.tr(context)),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _planTimeSlot = val);
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
 
-      // ── Evening ──
-      _buildPlanTimeTitle('Evening'.tr(context), Icons.nights_stay_outlined,
-          Colors.indigoAccent),
-      _buildPlanItemRowFromRoutine(routines['evening']!),
-      _buildPlanItemRow(
-        tag: 'Sleep Sounds'.tr(context), tagIcon: Icons.music_note_rounded,
-        tagColor: Colors.pinkAccent,
-        title: 'Deep Sleep Binaural'.tr(context),
-        subtitle: 'Unwind and relax'.tr(context),
-        gradientColors: isDark
-            ? [
-                const Color(0xFF1E1B4B).withValues(alpha: 0.5),
-                const Color(0xFF4A044E)
-              ]
-            : [Colors.pink.shade50, Colors.purple.shade50],
-        bgIcon: Icons.headphones_rounded,
-        bgIconColor: Colors.pinkAccent.withValues(alpha: 0.15),
-        imageUrl:
-            'https://images.unsplash.com/photo-1518104593124-ac2e82a5eb9d?q=80&w=600&auto=format&fit=crop', // Pink abstract neon
-        isVeryLast: true,
-      ),
-    ];
-
-    return AnimationLimiter(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: AnimationConfiguration.toStaggeredList(
-          duration: const Duration(milliseconds: 600),
-          childAnimationBuilder: (widget) => SlideAnimation(
-            verticalOffset: 50.0,
-            child: FadeInAnimation(child: widget),
+        // ── 2x2 Grid ──
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 0.78,
           ),
-          children: planItems,
+          itemCount: cards.length,
+          itemBuilder: (context, index) {
+            final card = cards[index];
+            return _buildPlanGridCard(
+              title: card['title'] as String,
+              subtitle: card['subtitle'] as String,
+              assetPath: card['asset'] as String,
+              accentColor: card['color'] as Color,
+              isDark: isDark,
+              index: index,
+              onTap: card['onTap'] as VoidCallback,
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanGridCard({
+    required String title,
+    required String subtitle,
+    required String assetPath,
+    required Color accentColor,
+    required bool isDark,
+    required int index,
+    required VoidCallback onTap,
+  }) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 400 + index * 100),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.07)
+                  : Colors.black.withValues(alpha: 0.06),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Image ──
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Image.asset(
+                      assetPath,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: accentColor.withValues(alpha: 0.1),
+                        child: Icon(Icons.image_rounded,
+                            color: accentColor.withValues(alpha: 0.3), size: 32),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // ── Text content below image ──
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textP(context),
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.dmSans(
+                        fontSize: 11,
+                        color: AppTheme.textM(context),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -484,6 +705,7 @@ class DashboardScreenState extends State<DashboardScreen>
       bgIcon: item.tagIcon,
       bgIconColor: item.tagColor.withValues(alpha: 0.15),
       imageUrl: item.imageUrl,
+      assetPath: item.assetPath, // FIX: Pass the newly added assetPath!
       isLastInSection: isLastInSection,
       onTap: () {
         if (item.type == 'meditation') {
@@ -491,6 +713,12 @@ class DashboardScreenState extends State<DashboardScreen>
               context,
               MaterialPageRoute(
                   builder: (_) => MeditationScreen(mood: _currentMoodLabel)));
+        } else if (item.type == 'walking_article') {
+          // Open the Walking Meditation chapter-based screen
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const WalkingMeditationScreen()));
         }
       },
     );
@@ -503,49 +731,38 @@ class DashboardScreenState extends State<DashboardScreen>
         ? Colors.white.withValues(alpha: 0.15)
         : Colors.black.withValues(alpha: 0.15);
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Line extending downwards only (no upward connection to previous section)
-                Positioned(
-                  top: 16,
-                  bottom: 0,
-                  width: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: lineColor.withValues(alpha: 0.5),
-                      boxShadow: [
-                        BoxShadow(color: lineColor.withValues(alpha: 0.2), blurRadius: 4, spreadRadius: 1)
-                      ]
-                    )
-                  ),
-                ),
-                // Section Icon
-                Container(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Icon(icon, size: 20, color: color),
-                ),
-              ],
-            ),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Content
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: color), // Center is precisely at x=14
+              const SizedBox(width: 12),
+              Text(title,
+                  style: GoogleFonts.dmSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textS(context))),
+            ],
           ),
-          const SizedBox(width: 12),
-          Container(
-            alignment: Alignment.centerLeft,
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(title,
-                style: GoogleFonts.dmSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textS(context))),
+        ),
+
+        // Timeline Line
+        Positioned(
+          left: 13, // Matches x=14 center
+          top: 24, // Start below icon
+          bottom: 0, // Extend through bottom padding to connect
+          width: 2,
+          child: CustomPaint(
+            painter:
+                _DottedLinePainter(color: lineColor.withValues(alpha: 0.5)),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -565,197 +782,177 @@ class DashboardScreenState extends State<DashboardScreen>
     VoidCallback? onTap,
   }) {
     final isDark = AppTheme.isDark(context);
-    final lineColor =
-        tagColor.withValues(alpha: 0.6); // Glowing line uses tag color!
+    final lineColor = isDark
+        ? Colors.white.withValues(alpha: 0.15)
+        : Colors.black
+            .withValues(alpha: 0.15); // Muted background timeline color
     // Should we show the line below the circle?
     final bool showLineBelow = !isLastInSection && !isVeryLast;
 
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Timeline
-          SizedBox(
-            width: 28,
-            child: Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                // Line from top to circle (always present)
-                Positioned(
-                  top: 0,
-                  height: 48,
-                  width: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: lineColor,
-                      boxShadow: [
-                        BoxShadow(color: lineColor.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1)
-                      ]
-                    ),
-                  ),
-                ),
-                // Line from circle to bottom (only if not last in section)
-                if (showLineBelow)
-                  Positioned(
-                    top: 54,
-                    bottom: 0,
-                    width: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: lineColor,
-                        boxShadow: [
-                          BoxShadow(color: lineColor.withValues(alpha: 0.3), blurRadius: 4, spreadRadius: 1)
-                        ]
-                      ),
-                    ),
-                  ),
-
-                // Circle marker (Sleek professional style)
-                Positioned(
-                  top: 42,
-                  child: Container(
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: tagColor, width: 3),
-                      color: AppTheme.bg(context),
-                      boxShadow: [
-                        BoxShadow(
-                            color: tagColor.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                            spreadRadius: 0)
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Plan Card (Premium Glassmorphic)
-          Expanded(
-            child: GestureDetector(
-              onTap: onTap,
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      colors: gradientColors,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.1), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4)),
-                    ]),
-                child: ClipRRect(
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Content Card (Dictates the height of the Stack)
+        Padding(
+          padding: const EdgeInsets.only(left: 36, bottom: 16),
+          child: GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                    child: Stack(
-                      children: [
-                        // Subtle BG Icon
+                  gradient: LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.1), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4)),
+                  ]),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Stack(
+                    children: [
+                      // Subtle BG Icon
+                      Positioned(
+                        right: -10,
+                        bottom: -10,
+                        child: Icon(bgIcon, size: 100, color: bgIconColor),
+                      ),
+
+                      // Beautiful floating image mask
+                      if (assetPath != null || imageUrl != null)
                         Positioned(
-                          right: -10,
-                          bottom: -10,
-                          child: Icon(bgIcon, size: 100, color: bgIconColor),
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: MediaQuery.of(context).size.width * 0.65, // Fix over-zoom by limiting width width
+                          child: ShaderMask(
+                            shaderCallback: (rect) {
+                              return const LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Colors.transparent, Colors.black],
+                                stops: [0.0, 0.3], // Smooth gradient blending into background
+                              ).createShader(rect);
+                            },
+                            blendMode: BlendMode.dstIn,
+                            child: assetPath != null
+                                ? Image.asset(assetPath,
+                                    fit: BoxFit.cover, // Will now scale beautifully to proper proportions
+                                    alignment: Alignment.centerRight) 
+                                : Image.network(imageUrl!,
+                                    fit: BoxFit.cover,
+                                    alignment: Alignment.centerRight),
+                          ),
                         ),
 
-                        // Beautiful floating image mask
-                        if (assetPath != null || imageUrl != null)
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            top: 0,
-                            child: ShaderMask(
-                              shaderCallback: (rect) {
-                                return const LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [Colors.transparent, Colors.black],
-                                  stops: [0.0, 0.4],
-                                ).createShader(rect);
-                              },
-                              blendMode: BlendMode.dstIn,
-                              child: assetPath != null
-                                  ? Image.asset(assetPath,
-                                      width: 150,
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.centerRight)
-                                  : Image.network(imageUrl!,
-                                      width: 150,
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.centerRight),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize
+                              .min, // Fix for intrinsic height overflow
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: tagColor.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: tagColor.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(tagIcon, size: 12, color: tagColor),
+                                  const SizedBox(width: 4),
+                                  Text(tag,
+                                      style: GoogleFonts.dmSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: tagColor,
+                                          letterSpacing: 0.5)),
+                                ],
+                              ),
                             ),
-                          ),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 20),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min, // Fix for intrinsic height overflow
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: tagColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                      color: tagColor.withValues(alpha: 0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(tagIcon, size: 12, color: tagColor),
-                                    const SizedBox(width: 4),
-                                    Text(tag,
-                                        style: GoogleFonts.dmSans(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: tagColor,
-                                            letterSpacing: 0.5)),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                width: MediaQuery.of(context).size.width * 0.45,
-                                child: Text(title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.outfit(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.textP(context))),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(subtitle,
-                                  maxLines: 1,
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width * 0.45,
+                              child: Text(title,
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.dmSans(
-                                      fontSize: 13,
-                                      color: AppTheme.textS(context)
-                                          .withValues(alpha: 0.9))),
-                            ],
-                          ),
+                                  style: GoogleFonts.outfit(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textP(context))),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(subtitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.dmSans(
+                                    fontSize: 13,
+                                    color: AppTheme.textS(context)
+                                        .withValues(alpha: 0.9))),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
-        ],
-      ),
+        ),
+
+        // Timeline Line from top to circle
+        Positioned(
+          left: 13,
+          top: 0,
+          height: 48,
+          width: 2,
+          child: CustomPaint(
+            painter: _DottedLinePainter(color: lineColor),
+          ),
+        ),
+
+        // Timeline Line from circle to bottom
+        if (showLineBelow)
+          Positioned(
+            left: 13,
+            top: 54,
+            bottom: 0, // Goes through bottom margin
+            width: 2,
+            child: CustomPaint(
+              painter: _DottedLinePainter(color: lineColor),
+            ),
+          ),
+
+        // Circle marker (Sleek professional style)
+        Positioned(
+          left: 7,
+          top: 42,
+          child: Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: tagColor, width: 2),
+              color: AppTheme.bg(context),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1162,4 +1359,30 @@ class DashboardScreenState extends State<DashboardScreen>
   }
 }
 
-// Removed _GlowingLinePainter as it's been replaced with sleek Container styling
+// ─── Dotted Line Painter ───────────────────────────────────────────
+class _DottedLinePainter extends CustomPainter {
+  final Color color;
+  _DottedLinePainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    final double max = size.height;
+    const double dashWidth = 4.0;
+    const double dashSpace = 4.0;
+    double startY = 0;
+    while (startY < max) {
+      canvas.drawLine(Offset(size.width / 2, startY),
+          Offset(size.width / 2, startY + dashWidth), paint);
+      startY += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}

@@ -14,6 +14,8 @@ import '../services/usage_tracker_service.dart';
 import '../widgets/glass_container.dart';
 import '../core/app_theme.dart';
 import '../core/localization.dart';
+import '../providers/sleep_music_provider.dart';
+import '../widgets/mini_player_widget.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback onLogout;
@@ -234,20 +236,31 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ) : null,
-          body: IndexedStack(
-            index: _currentIndex,
+          body: Stack(
             children: [
-              _initializedTabs.contains(0) ? DashboardScreen(
-                key: _dashboardKey, 
-                onStressUpdate: _toggleSafeSpace,
-                onLogSubmitted: () {
-                  _historyKey.currentState?.refresh();
-                  _insightsKey.currentState?.refresh();
-                },
-              ) : const SizedBox.shrink(),
-              _initializedTabs.contains(1) ? const TherapyChatScreen() : const SizedBox.shrink(),
-              _initializedTabs.contains(2) ? InsightsScreen(key: _insightsKey) : const SizedBox.shrink(),
-              _initializedTabs.contains(3) ? HistoryScreen(key: _historyKey) : const SizedBox.shrink(),
+              IndexedStack(
+                index: _currentIndex,
+                children: [
+                  _initializedTabs.contains(0) ? DashboardScreen(
+                    key: _dashboardKey, 
+                    onStressUpdate: _toggleSafeSpace,
+                    onLogSubmitted: () {
+                      _historyKey.currentState?.refresh();
+                      _insightsKey.currentState?.refresh();
+                    },
+                  ) : const SizedBox.shrink(),
+                  _initializedTabs.contains(1) ? const TherapyChatScreen() : const SizedBox.shrink(),
+                  _initializedTabs.contains(2) ? InsightsScreen(key: _insightsKey) : const SizedBox.shrink(),
+                  _initializedTabs.contains(3) ? HistoryScreen(key: _historyKey) : const SizedBox.shrink(),
+                ],
+              ),
+              // Spotify-style mini player floating above bottom nav
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: const MiniPlayerWidget(),
+              ),
             ],
           ),
           bottomNavigationBar: Container(
